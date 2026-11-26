@@ -51,6 +51,7 @@ const AttendanceManagement = () => {
 
   const [expandedEventIds, setExpandedEventIds] = useState({});
   const [mobileStatusTab, setMobileStatusTab] = useState('all');
+  const [eventTimelineFilter, setEventTimelineFilter] = useState('all');
   const SESSION_SLOTS = [
     { key: 'am_in', label: 'AM In' },
     { key: 'am_out', label: 'AM Out' },
@@ -92,25 +93,6 @@ const AttendanceManagement = () => {
     }
   };
 
-  const frcEventsSorted = useMemo(() => (
-    events
-      .filter(e => (e.type || '').toUpperCase() === 'FRC')
-      .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
-  ), [events]);
-
-  const otherEventsSorted = useMemo(() => (
-    events
-      .filter(e => (e.type || '').toUpperCase() !== 'FRC')
-      .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
-  ), [events]);
-
-  const eventsSorted = useMemo(() => ([...frcEventsSorted, ...otherEventsSorted]), [frcEventsSorted, otherEventsSorted]);
-  const eventsToShow = useMemo(() => {
-    if (eventTypeFilter === 'FRC') return frcEventsSorted;
-    if (eventTypeFilter === 'Events') return otherEventsSorted;
-    return eventsSorted;
-  }, [eventTypeFilter, frcEventsSorted, otherEventsSorted, eventsSorted]);
-
   const isUpcomingEvent = (ev) => {
     if (!ev?.event_date) return false;
     const match = String(ev.event_date).match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -121,6 +103,31 @@ const AttendanceManagement = () => {
     today.setHours(0, 0, 0, 0);
     return evDate > today;
   };
+
+  const matchesTimelineFilter = (ev) => {
+    if (eventTimelineFilter === 'held') return !isUpcomingEvent(ev);
+    if (eventTimelineFilter === 'upcoming') return isUpcomingEvent(ev);
+    return true;
+  };
+
+  const frcEventsSorted = useMemo(() => (
+    events
+      .filter(e => (e.type || '').toUpperCase() === 'FRC' && matchesTimelineFilter(e))
+      .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
+  ), [events, eventTimelineFilter]);
+
+  const otherEventsSorted = useMemo(() => (
+    events
+      .filter(e => (e.type || '').toUpperCase() !== 'FRC' && matchesTimelineFilter(e))
+      .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
+  ), [events, eventTimelineFilter]);
+
+  const eventsSorted = useMemo(() => ([...frcEventsSorted, ...otherEventsSorted]), [frcEventsSorted, otherEventsSorted]);
+  const eventsToShow = useMemo(() => {
+    if (eventTypeFilter === 'FRC') return frcEventsSorted;
+    if (eventTypeFilter === 'Events') return otherEventsSorted;
+    return eventsSorted;
+  }, [eventTypeFilter, frcEventsSorted, otherEventsSorted, eventsSorted]);
 
   const computeTotalPenalty = (studentId) => {
     let total = 0;
@@ -506,7 +513,7 @@ const AttendanceManagement = () => {
     const penalty = computeTotalPenalty(student.id);
     return (
       <tr key={student.id} className="hover:bg-muted/35 transition-colors">
-        <td className="sticky left-0 bg-card pl-4 pr-3 py-3 whitespace-nowrap z-10 min-w-[200px] sm:min-w-[240px] border-r border-border/50">
+        <td className="sticky left-0 bg-card pl-4 pr-3 py-3 whitespace-nowrap z-10 min-w-[165px] sm:min-w-[190px] border-r border-border/60 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] dark:shadow-none">
           <div className="text-sm font-medium text-foreground">{getDisplayName(student)}</div>
           <div className="text-xs text-muted-foreground font-mono tabular-nums">{student.student_id}</div>
         </td>
@@ -611,7 +618,7 @@ const AttendanceManagement = () => {
             </td>
           );
         })}
-        <td className="pl-3 pr-5 py-3 whitespace-nowrap text-right align-middle w-28">
+        <td className="sticky right-0 bg-card pl-3 pr-4 py-3 whitespace-nowrap text-right align-middle w-24 z-10 border-l border-border/60 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.06)] dark:shadow-none">
           <span
             className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold tabular-nums ${
               penalty > 0
@@ -631,9 +638,9 @@ const AttendanceManagement = () => {
     const isCollapsed = collapsedSections[secKey];
     return (
       <React.Fragment key={`${modePrefix}-${secKey}`}>
-        <tr className="bg-muted/25 hover:bg-muted/45 transition-colors">
+        <tr className="bg-card hover:bg-muted/40 transition-colors">
           <td
-            className="sticky left-0 bg-muted/25 pl-4 pr-3 py-2 text-xs font-medium text-muted-foreground cursor-pointer z-20 border-r border-border/50"
+            className="sticky left-0 bg-card pl-4 pr-3 py-2 text-xs font-medium text-muted-foreground cursor-pointer z-20 border-r border-border/60"
             onClick={() => toggleSection(secKey)}
           >
             <div className="inline-flex items-center gap-1.5">
@@ -646,7 +653,8 @@ const AttendanceManagement = () => {
               <span className="text-muted-foreground tabular-nums">· {students.length}</span>
             </div>
           </td>
-          <td colSpan={totalEventCols + 1} className="px-3 py-2" />
+          <td colSpan={totalEventCols} className="bg-card px-3 py-2" />
+          <td className="sticky right-0 bg-card z-20 border-l border-border/60" />
         </tr>
         {!isCollapsed && students.map((student) => renderStudentRow(student, isMatrix))}
       </React.Fragment>
@@ -670,18 +678,18 @@ const AttendanceManagement = () => {
       <Card className={cardClass}>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-border/70 text-xs sm:text-sm">
-            <thead className="bg-muted/40">
+            <thead className="bg-muted">
               <tr>
                 <th
                   rowSpan={hasExpandedOther ? 3 : 2}
-                  className="sticky left-0 bg-muted/40 backdrop-blur-sm pl-4 pr-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] z-20 min-w-[200px] sm:min-w-[240px] border-r border-border/50"
+                  className="sticky left-0 bg-muted pl-4 pr-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] z-30 min-w-[165px] sm:min-w-[190px] border-r border-border/60 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.06)] dark:shadow-none"
                 >
                   Student
                 </th>
                 {eventTypeFilter !== 'Events' && frcEventsSorted.length > 0 && (
                   <th
                     colSpan={frcColSpan}
-                    className="px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] border-b border-border/50"
+                    className="px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] border-b border-r border-border/50"
                   >
                     FRC
                   </th>
@@ -696,7 +704,7 @@ const AttendanceManagement = () => {
                 )}
                 <th
                   rowSpan={hasExpandedOther ? 3 : 2}
-                  className="pl-3 pr-5 py-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] w-28"
+                  className="sticky right-0 bg-muted pl-3 pr-4 py-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] w-24 z-30 border-l border-border/60 shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.06)] dark:shadow-none"
                 >
                   Penalty
                 </th>
@@ -706,10 +714,11 @@ const AttendanceManagement = () => {
                   <th
                     key={`${modePrefix}-frc-${event.id}`}
                     rowSpan={hasExpandedOther ? 2 : 1}
-                    className="px-2 py-1.5 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wider min-w-[96px]"
+                    title={event.name}
+                    className="px-2 py-1.5 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wider min-w-[92px] border-r border-border/30"
                   >
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="truncate max-w-[100px] text-foreground font-medium">{event.name}</span>
+                      <span className="truncate max-w-[140px] text-foreground font-medium">{event.name}</span>
                       <span className="text-[10px] text-muted-foreground tabular-nums">
                         {new Date(event.event_date).toLocaleDateString()}
                       </span>
@@ -727,12 +736,12 @@ const AttendanceManagement = () => {
                       colSpan={isExpanded ? 4 : 1}
                       rowSpan={hasExpandedOther && !isExpanded ? 2 : 1}
                       onClick={() => toggleExpandEvent(event.id)}
-                      title={isExpanded ? 'Click to collapse sessions' : 'Click to expand 4 sessions'}
-                      className="px-2 py-1.5 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wider min-w-[96px] cursor-pointer hover:bg-muted/60 transition-colors"
+                      title={`${event.name} — ${isExpanded ? 'Click to collapse sessions' : 'Click to expand 4 sessions'}`}
+                      className="px-2 py-1.5 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wider min-w-[96px] border-r border-border/30 cursor-pointer hover:bg-accent transition-colors"
                     >
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="inline-flex items-center gap-1 text-foreground font-medium">
-                          <span className="truncate max-w-[100px]">{event.name}</span>
+                          <span className="truncate max-w-[140px]">{event.name}</span>
                           <span className="text-[10px] text-primary">{isExpanded ? '▾' : '▸'}</span>
                         </span>
                         <span className="text-[10px] text-muted-foreground tabular-nums">
@@ -787,11 +796,12 @@ const AttendanceManagement = () => {
               ) : yearFilter === 'all' ? (
                 filteredGroupedYearSections.map(({ year, sections, total }) => (
                   <React.Fragment key={`${modePrefix}-year-${year}`}>
-                    <tr className="bg-muted/55">
-                      <td className="sticky left-0 bg-muted/55 pl-4 pr-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground z-30 border-r border-border/50">
+                    <tr className="bg-muted">
+                      <td className="sticky left-0 bg-muted pl-4 pr-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground z-30 border-r border-border/60">
                         Year Level {year} <span className="text-muted-foreground font-normal">({total})</span>
                       </td>
-                      <td colSpan={totalEventCols + 1} className="px-3 py-2" />
+                      <td colSpan={totalEventCols} className="bg-muted px-3 py-2" />
+                      <td className="sticky right-0 bg-muted z-30 border-l border-border/60" />
                     </tr>
                     {sections.map(({ section, students }) =>
                       renderSectionGroup(year, section, students, modePrefix, isMatrix)
@@ -888,7 +898,7 @@ const AttendanceManagement = () => {
         <div className="w-full sm:w-auto">
           <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Event</Label>
           <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[160px] rounded-xl bg-card">
+            <SelectTrigger className="w-full sm:w-[130px] rounded-xl bg-card">
               <SelectValue placeholder="Filter events" />
             </SelectTrigger>
             <SelectContent>
@@ -898,6 +908,21 @@ const AttendanceManagement = () => {
             </SelectContent>
           </Select>
         </div>
+        {!isStudentRole && (
+          <div className="w-full sm:w-auto">
+            <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Schedule</Label>
+            <Select value={eventTimelineFilter} onValueChange={setEventTimelineFilter}>
+              <SelectTrigger className="w-full sm:w-[140px] rounded-xl bg-card">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Dates</SelectItem>
+                <SelectItem value="held">Past &amp; Today</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {!isStudentRole && (
           <div className="w-full sm:w-auto">
             <Tabs value={yearFilter} onValueChange={setYearFilter}>
