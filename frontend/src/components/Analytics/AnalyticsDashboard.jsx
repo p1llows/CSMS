@@ -1,41 +1,68 @@
 import axios from 'axios';
+import { Users, BadgeCheck, AlertTriangle, ClipboardList, BarChart3, PieChart as PieChartIcon, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Users, BadgeCheck, AlertTriangle, ClipboardList, BarChart3, PieChart, TrendingUp } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
-import { Bar, Line, Doughnut } from 'react-chartjs-2';
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Label,
+  Pie,
+  PieChart,
+  Sector,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
 
-import { useTheme } from '../../context/ThemeContext.jsx';
+const EVENT_TYPE_COLORS = [
+  '#D94875',
+  '#F1B5C5',
+  '#B8325B',
+  '#881D3D',
+  '#E47296',
+  '#581328',
+];
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-);
+const attendanceChartConfig = {
+  attendanceRate: {
+    label: 'Attendance Rate (%)',
+    theme: {
+      light: '#881D3D',
+      dark: '#D94875',
+    },
+  },
+};
+
+const serviceHoursChartConfig = {
+  hoursRendered: {
+    label: 'Hours Rendered',
+    theme: {
+      light: '#881D3D',
+      dark: '#F1B5C5',
+    },
+  },
+  penaltyHours: {
+    label: 'Penalty Hours',
+    color: '#D94875',
+  },
+};
 
 const AnalyticsDashboard = () => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeHoursSeries, setActiveHoursSeries] = useState('all');
+  const [activeEventIndex, setActiveEventIndex] = useState(-1);
 
   useEffect(() => {
     fetchAnalytics();
@@ -52,14 +79,6 @@ const AnalyticsDashboard = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   const {
     attendanceTrends = [],
     serviceHoursTrends = [],
@@ -71,94 +90,66 @@ const AnalyticsDashboard = () => {
     penaltyStudentsCount,
   } = analyticsData || {};
 
-  const tickColor = isDark ? 'rgba(226, 232, 240, 0.65)' : 'rgba(71, 85, 105, 0.8)';
-  const gridColor = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.18)';
+  const attendanceChartData = useMemo(
+    () =>
+      attendanceTrends.map((item) => ({
+        date: new Date(item.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        fullDate: new Date(item.date).toLocaleDateString(),
+        attendanceRate:
+          item.total_expected > 0
+            ? Number(((item.present_count / item.total_expected) * 100).toFixed(1))
+            : 0,
+      })),
+    [attendanceTrends]
+  );
 
-  const attendanceChartData = {
-    labels: attendanceTrends.map(item => new Date(item.date).toLocaleDateString()),
-    datasets: [
-      {
-        label: 'Attendance Rate (%)',
-        data: attendanceTrends.map(item =>
-          item.total_expected > 0 ? (item.present_count / item.total_expected * 100).toFixed(1) : 0
-        ),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.35,
-      },
-    ],
-  };
+  const serviceHoursChartData = useMemo(
+    () =>
+      serviceHoursTrends.map((item) => ({
+        date: new Date(item.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        fullDate: new Date(item.date).toLocaleDateString(),
+        hoursRendered: Number(item.hours_rendered || 0),
+        penaltyHours: Number(item.penalty_hours || 0),
+      })),
+    [serviceHoursTrends]
+  );
 
-  const serviceHoursChartData = {
-    labels: serviceHoursTrends.map(item => new Date(item.date).toLocaleDateString()),
-    datasets: [
-      {
-        label: 'Hours Rendered',
-        data: serviceHoursTrends.map(item => item.hours_rendered || 0),
-        backgroundColor: 'rgba(16, 185, 129, 0.85)',
-        borderRadius: 6,
-      },
-      {
-        label: 'Penalty Hours',
-        data: serviceHoursTrends.map(item => item.penalty_hours || 0),
-        backgroundColor: 'rgba(244, 63, 94, 0.85)',
-        borderRadius: 6,
-      },
-    ],
-  };
+  const eventTypesChartData = useMemo(
+    () =>
+      eventTypes.map((item, idx) => ({
+        type: item.type,
+        count: Number(item.count || 0),
+        fill: EVENT_TYPE_COLORS[idx % EVENT_TYPE_COLORS.length],
+      })),
+    [eventTypes]
+  );
 
-  const eventTypesChartData = {
-    labels: eventTypes.map(item => item.type),
-    datasets: [
-      {
-        data: eventTypes.map(item => item.count),
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.85)',
-          'rgba(16, 185, 129, 0.85)',
-          'rgba(245, 158, 11, 0.85)',
-          'rgba(244, 63, 94, 0.85)',
-          'rgba(139, 92, 246, 0.85)',
-          'rgba(236, 72, 153, 0.85)',
-        ],
-        borderWidth: 2,
-        borderColor: isDark ? '#0f172a' : '#fff',
-      },
-    ],
-  };
+  const eventTypesChartConfig = useMemo(() => {
+    const cfg = { count: { label: 'Events' } };
+    eventTypesChartData.forEach((item) => {
+      cfg[item.type] = { label: item.type, color: item.fill };
+    });
+    return cfg;
+  }, [eventTypesChartData]);
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: { color: tickColor, usePointStyle: true, boxWidth: 8 },
-      },
-    },
-    scales: {
-      x: {
-        ticks: { color: tickColor },
-        grid: { display: false },
-      },
-      y: {
-        beginAtZero: true,
-        ticks: { color: tickColor },
-        grid: { color: gridColor },
-      },
-    },
-  };
+  const totalEventsCount = useMemo(
+    () => eventTypesChartData.reduce((sum, item) => sum + item.count, 0),
+    [eventTypesChartData]
+  );
 
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '68%',
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: { color: tickColor, usePointStyle: true, boxWidth: 8 },
-      },
-    },
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   const cardClass =
     'rounded-2xl border border-border/60 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.03)] dark:shadow-none';
@@ -239,10 +230,58 @@ const AnalyticsDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className={cardClass}>
           <CardContent className="p-5 sm:p-6">
-            <h3 className="text-base font-semibold text-foreground mb-4">Attendance Trends</h3>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Attendance Trends</h3>
+                <p className="text-xs text-muted-foreground">Hover points to inspect session turnout</p>
+              </div>
+            </div>
             <div className="h-64">
-              {attendanceTrends.length > 0 ? (
-                <Line data={attendanceChartData} options={chartOptions} />
+              {attendanceChartData.length > 0 ? (
+                <ChartContainer config={attendanceChartConfig} className="h-full w-full aspect-auto">
+                  <AreaChart data={attendanceChartData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="fillAttendanceRate" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-attendanceRate)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--color-attendanceRate)" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      minTickGap={24}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <ChartTooltip
+                      cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                      content={
+                        <ChartTooltipContent
+                          indicator="dot"
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ''}
+                          formatter={(value) => [`${value}%`, 'Attendance Rate']}
+                        />
+                      }
+                    />
+                    <Area
+                      dataKey="attendanceRate"
+                      type="monotone"
+                      fill="url(#fillAttendanceRate)"
+                      stroke="var(--color-attendanceRate)"
+                      strokeWidth={2.2}
+                      activeDot={{ r: 5 }}
+                    />
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </AreaChart>
+                </ChartContainer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-2">
                   <TrendingUp className="w-8 h-8 text-muted-foreground/40" />
@@ -258,10 +297,62 @@ const AnalyticsDashboard = () => {
 
         <Card className={cardClass}>
           <CardContent className="p-5 sm:p-6">
-            <h3 className="text-base font-semibold text-foreground mb-4">Service Hours Trends</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Service Hours Trends</h3>
+                <p className="text-xs text-muted-foreground">Toggle metrics or hover bars for details</p>
+              </div>
+              <div className="inline-flex items-center rounded-lg border border-border/70 bg-muted/40 p-0.5 text-xs">
+                {[
+                  { key: 'all', label: 'Both' },
+                  { key: 'hoursRendered', label: 'Rendered' },
+                  { key: 'penaltyHours', label: 'Penalty' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setActiveHoursSeries(opt.key)}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      activeHoursSeries === opt.key
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="h-64">
-              {serviceHoursTrends.length > 0 ? (
-                <Bar data={serviceHoursChartData} options={chartOptions} />
+              {serviceHoursChartData.length > 0 ? (
+                <ChartContainer config={serviceHoursChartConfig} className="h-full w-full aspect-auto">
+                  <BarChart data={serviceHoursChartData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      minTickGap={24}
+                    />
+                    <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          indicator="dashed"
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ''}
+                        />
+                      }
+                    />
+                    {(activeHoursSeries === 'all' || activeHoursSeries === 'hoursRendered') && (
+                      <Bar dataKey="hoursRendered" fill="var(--color-hoursRendered)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                    )}
+                    {(activeHoursSeries === 'all' || activeHoursSeries === 'penaltyHours') && (
+                      <Bar dataKey="penaltyHours" fill="var(--color-penaltyHours)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                    )}
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </BarChart>
+                </ChartContainer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-2">
                   <BarChart3 className="w-8 h-8 text-muted-foreground/40" />
@@ -280,13 +371,77 @@ const AnalyticsDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className={cardClass}>
           <CardContent className="p-5 sm:p-6">
-            <h3 className="text-base font-semibold text-foreground mb-4">Event Types Distribution</h3>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Event Types Distribution</h3>
+                <p className="text-xs text-muted-foreground">Hover a slice to inspect event breakdown</p>
+              </div>
+            </div>
             <div className="h-64">
-              {eventTypes.length > 0 ? (
-                <Doughnut data={eventTypesChartData} options={doughnutOptions} />
+              {eventTypesChartData.length > 0 ? (
+                <ChartContainer config={eventTypesChartConfig} className="h-full w-full aspect-auto">
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel nameKey="type" />}
+                    />
+                    <Pie
+                      data={eventTypesChartData}
+                      dataKey="count"
+                      nameKey="type"
+                      innerRadius={58}
+                      outerRadius={86}
+                      paddingAngle={3}
+                      strokeWidth={2}
+                      activeIndex={activeEventIndex}
+                      activeShape={({ outerRadius = 0, ...props }) => (
+                        <Sector {...props} outerRadius={outerRadius + 6} />
+                      )}
+                      onMouseEnter={(_, index) => setActiveEventIndex(index)}
+                      onMouseLeave={() => setActiveEventIndex(-1)}
+                    >
+                      {eventTypesChartData.map((entry) => (
+                        <Cell key={entry.type} fill={entry.fill} stroke="hsl(var(--card))" />
+                      ))}
+                      <Label
+                        content={({ viewBox }) => {
+                          if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                            const activeItem =
+                              activeEventIndex >= 0 ? eventTypesChartData[activeEventIndex] : null;
+                            return (
+                              <text
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                              >
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  className="fill-foreground text-2xl font-bold tabular-nums"
+                                >
+                                  {activeItem ? activeItem.count : totalEventsCount}
+                                </tspan>
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={(viewBox.cy || 0) + 20}
+                                  className="fill-muted-foreground text-xs"
+                                >
+                                  {activeItem ? activeItem.type : 'Total Events'}
+                                </tspan>
+                              </text>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </Pie>
+                    <ChartLegend content={<ChartLegendContent nameKey="type" />} />
+                  </PieChart>
+                </ChartContainer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-2">
-                  <PieChart className="w-8 h-8 text-muted-foreground/40" />
+                  <PieChartIcon className="w-8 h-8 text-muted-foreground/40" />
                   <p className="text-sm font-medium text-foreground">No events recorded yet</p>
                   <p className="text-xs text-muted-foreground">
                     Event breakdown by category will appear once events are created.

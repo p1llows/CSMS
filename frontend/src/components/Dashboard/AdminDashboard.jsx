@@ -26,11 +26,14 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 const chartConfig = {
   present: {
     label: 'Present',
-    color: 'hsl(152 69% 41%)',
+    theme: {
+      light: '#881D3D',
+      dark: '#F1B5C5',
+    },
   },
   absent: {
     label: 'Absent',
-    color: 'hsl(346 77% 50%)',
+    color: '#D94875',
   },
 };
 
