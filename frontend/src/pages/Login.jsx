@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { useAuth } from '../context/AuthContext.jsx';
+import ThemeToggle from '../components/Layout/ThemeToggle.jsx';
 
 const Login = () => {
   const { login } = useAuth();
@@ -41,19 +42,23 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-accent-50 to-accent-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <Card className="rounded-2xl shadow-sm border border-pink-200 bg-pink-50">
-          <CardContent className="p-6 sm:p-8">
-            <div className="text-center">
-              <div className="mx-auto h-32 w-32 mb-2 flex items-center justify-center">
-                <img src="/logo.png" alt="CSMS Logo" className="h-full w-full object-contain" />
-              </div>
-              <h2 className="text-2xl font-bold text-foreground">Sign in</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Use your school account to continue</p>
-            </div>
+    <div className="min-h-screen bg-background relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-5 right-5 z-10">
+        <ThemeToggle className="h-9 w-9 rounded-full border border-border bg-card hover:bg-accent" />
+      </div>
+      <div className="w-full max-w-[400px] relative z-10">
+        <div className="mb-8 text-center">
+          <img src="/logo.png" alt="CSMS Logo" className="mx-auto h-14 w-14 object-contain mb-4" />
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
+            College of Computer Science
+          </p>
+          <h2 className="text-2xl font-medium tracking-tight text-foreground">
+            Sign in to CSMS
+          </h2>
+        </div>
 
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+        <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+          <form className="space-y-5" onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="email">Email Address</Label>
@@ -100,7 +105,7 @@ const Login = () => {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                  <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-lg text-sm">
                     {error}
                   </div>
                 )}
@@ -119,7 +124,7 @@ const Login = () => {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-11 text-base font-medium"
+                    className="w-full h-11 rounded-full text-sm font-medium"
                   >
                     {loading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -130,16 +135,15 @@ const Login = () => {
                 </div>
 
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <button type="button" className="font-medium text-primary hover:underline" onClick={() => setShowContact(true)}>
-                      Contact your administrator
+                  <p className="text-xs text-muted-foreground">
+                    Need an account?{' '}
+                    <button type="button" className="font-medium text-foreground underline underline-offset-4 hover:text-primary" onClick={() => setShowContact(true)}>
+                      Contact administrator
                     </button>
                   </p>
                 </div>
-            </form>
-          </CardContent>
-        </Card>
+          </form>
+        </div>
 
         <Dialog open={showContact} onOpenChange={setShowContact}>
           <DialogContent className="sm:max-w-md">
@@ -172,7 +176,7 @@ const Login = () => {
           </DialogContent>
         </Dialog>
 
-        <div className="mt-8 text-center text-xs text-secondary-500">
+        <div className="mt-8 text-center text-xs text-muted-foreground">
           <p>College of Computer Science</p>
           <p>Community Service Monitoring System</p>
         </div>

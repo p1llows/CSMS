@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { cn } from '../../lib/utils';
+import ThemeToggle from './ThemeToggle.jsx';
 
 const MobileSidebar = ({ activeTab, setActiveTab }) => {
   const { user, logout } = useAuth();
@@ -132,20 +133,20 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden bg-background shadow-sm border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center">
-            <img src="/logo.png" alt="CSMS Logo" className="h-12 w-auto object-contain mr-2" />
-            <h1 className="text-lg font-bold text-primary">CSMS</h1>
-          </div>
+      <div className="lg:hidden bg-card/90 backdrop-blur-md shadow-sm border-b border-border px-4 py-2.5 flex items-center justify-between sticky top-0 z-20">
+        <div className="flex items-center space-x-2.5">
+          <img src="/logo.png" alt="CSMS Logo" className="h-9 w-9 object-contain" />
+          <h1 className="text-base font-bold tracking-tight text-foreground">CSMS</h1>
         </div>
 
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Open menu">
-              <Menu className="w-6 h-6" />
-            </Button>
-          </SheetTrigger>
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle className="h-9 w-9 rounded-lg" />
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72">
             <SheetHeader className="p-4 border-b border-border text-left">
               <SheetTitle className="flex items-center gap-2">
@@ -217,15 +218,16 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-none px-4 py-3 text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                className="w-full justify-start rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={logout}
               >
-                <LogOut className="w-5 h-5 mr-3" />
+                <LogOut className="w-4 h-4 mr-3" />
                 <span>Logout</span>
               </Button>
             </div>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
     </>
   );

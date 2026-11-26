@@ -10,9 +10,11 @@ import AdminDashboard from './components/Dashboard/AdminDashboard.jsx';
 import StudentDashboard from './components/Dashboard/StudentDashboard.jsx';
 import MobileSidebar from './components/Layout/MobileSidebar.jsx';
 import Sidebar from './components/Layout/Sidebar.jsx';
+import TopBar from './components/Layout/TopBar.jsx';
 import TaskManagement from './components/Tasks/TaskManagement.jsx';
 import UserManagement from './components/Users/UserManagement.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import Login from './pages/Login.jsx';
 import './index.css';
 import Settings from './components/Settings/Settings.jsx';
@@ -47,8 +49,8 @@ const MainApp = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -58,9 +60,12 @@ const MainApp = () => {
   }
 
   const renderContent = () => {
+    const isStudent = String(user.role || '').toUpperCase() === 'STUDENT';
     switch (activeTab) {
       case 'dashboard':
-        return (String(user.role || '').toUpperCase() === 'STUDENT') ? <StudentDashboard /> : <AdminDashboard />;
+        return isStudent
+          ? <StudentDashboard onNavigate={setActiveTab} />
+          : <AdminDashboard onNavigate={setActiveTab} />;
       case 'calendar':
         return <EventCalendar />;
       case 'events':
@@ -72,28 +77,21 @@ const MainApp = () => {
       case 'analytics':
         return (String(user.role || '').toUpperCase() === 'ADMIN')
           ? <AnalyticsDashboard />
-          : <AdminDashboard />;
+          : <AdminDashboard onNavigate={setActiveTab} />;
       case 'users':
-        return <UserManagement />;
       case 'students':
-        return (
-          <Card>
-            <CardContent>
-              <h2 className="text-2xl font-bold text-foreground mb-4">Student Management</h2>
-              <p className="text-muted-foreground">Student management features coming soon...</p>
-            </CardContent>
-          </Card>
-        );
-
+        return <UserManagement />;
       case 'settings':
         return <Settings />;
       default:
-        return (String(user.role || '').toUpperCase() === 'STUDENT') ? <StudentDashboard /> : <AdminDashboard />;
+        return isStudent
+          ? <StudentDashboard onNavigate={setActiveTab} />
+          : <AdminDashboard onNavigate={setActiveTab} />;
     }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-background text-foreground">
       {/* Mobile Header and Sidebar */}
       <div className="lg:hidden">
         <MobileSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -105,10 +103,13 @@ const MainApp = () => {
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-4 sm:p-6 lg:p-8">
-          {renderContent()}
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TopBar activeTab={activeTab} />
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+            {renderContent()}
+          </div>
+        </main>
       </div>
     </div>
   );
@@ -116,11 +117,13 @@ const MainApp = () => {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <MainApp />
-      </AuthProvider>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <AuthProvider>
+          <MainApp />
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   );
 }
 
