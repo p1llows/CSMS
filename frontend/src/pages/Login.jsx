@@ -42,7 +42,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-background text-foreground grid grid-cols-1 lg:grid-cols-12">
       {/* Left Editorial Panel (Desktop) */}
-      <aside className="hidden lg:flex lg:col-span-7 relative flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-[#881D3D] via-[#6e1732] to-[#581328] text-white overflow-hidden">
+      <aside className="hidden lg:flex lg:col-span-7 relative flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-[#A80D65] via-[#E91890] to-[#F472B6] text-white overflow-hidden">
         {/* CCS Building Backdrop (right-anchored & edge-masked like reference) */}
         <div
           aria-hidden="true"
@@ -59,9 +59,9 @@ const Login = () => {
           <img
             src="/ccs-building.jpg"
             alt=""
-            className="w-full h-full object-cover object-center opacity-50 mix-blend-luminosity contrast-125 brightness-90"
+            className="w-full h-full object-cover object-center opacity-50 mix-blend-luminosity contrast-125 brightness-95"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#581328]/85 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#8A0A52]/80 via-transparent to-transparent" />
         </div>
         {/* Subtle architectural grid */}
         <div
@@ -96,18 +96,18 @@ const Login = () => {
           />
           <defs>
             <linearGradient id="leftRibbonFill1" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#D94875" stopOpacity="0.22" />
-              <stop offset="65%" stopColor="#F1B5C5" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#581328" stopOpacity="0" />
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.24" />
+              <stop offset="65%" stopColor="#F4B2D0" stopOpacity="0.14" />
+              <stop offset="100%" stopColor="#A80D65" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="leftRibbonFill2" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F1B5C5" stopOpacity="0.16" />
-              <stop offset="100%" stopColor="#881D3D" stopOpacity="0" />
+              <stop offset="0%" stopColor="#F4B2D0" stopOpacity="0.24" />
+              <stop offset="100%" stopColor="#E91890" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="leftRibbonStroke" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#F1B5C5" stopOpacity="0.38" />
-              <stop offset="70%" stopColor="#F1B5C5" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#F1B5C5" stopOpacity="0" />
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.42" />
+              <stop offset="70%" stopColor="#F4B2D0" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
             </linearGradient>
           </defs>
         </svg>
@@ -118,7 +118,7 @@ const Login = () => {
             <span className="text-2xl font-bold tracking-tight text-white block leading-tight">
               CSMS
             </span>
-            <span className="text-[11px] uppercase tracking-[0.2em] text-rose-100/80">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-pink-100/85">
               College of Computer Science
             </span>
           </div>
@@ -126,39 +126,39 @@ const Login = () => {
 
         <div className="relative z-10 max-w-xl space-y-5 my-auto py-12">
           <div className="flex items-center gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-rose-100/90">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-pink-100/95">
               Community Service Monitoring System
             </p>
             <span className="h-px w-12 bg-white/40" />
           </div>
           <h1 className="text-4xl xl:text-[52px] font-semibold tracking-[-0.03em] leading-[1.06] text-white">
             Track service hours,{' '}
-            <span className="text-rose-100/80 font-medium">events, and attendance in one place.</span>
+            <span className="text-pink-100/90 font-medium">events, and attendance in one place.</span>
           </h1>
-          <p className="text-base text-rose-100/80 leading-relaxed max-w-md">
+          <p className="text-base text-pink-100/85 leading-relaxed max-w-md">
             Manage FRC and campus events, verify four-session attendance, and monitor community service progress across students and faculty.
           </p>
         </div>
 
-        <div className="relative z-10 grid grid-cols-3 divide-x divide-white/15 pt-4">
+        <div className="relative z-10 grid grid-cols-3 divide-x divide-white/20 pt-4">
           <div className="pr-5 flex items-start gap-3">
-            <CalendarCheck className="w-5 h-5 text-rose-200/85 shrink-0 mt-0.5" />
+            <CalendarCheck className="w-5 h-5 text-pink-100/90 shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-rose-200/75">01 · Attendance</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-pink-100/80">01 · Attendance</p>
               <p className="mt-1 text-sm font-medium text-white">4-Session Tracking</p>
             </div>
           </div>
           <div className="px-5 flex items-start gap-3">
-            <CalendarDays className="w-5 h-5 text-rose-200/85 shrink-0 mt-0.5" />
+            <CalendarDays className="w-5 h-5 text-pink-100/90 shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-rose-200/75">02 · Schedule</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-pink-100/80">02 · Schedule</p>
               <p className="mt-1 text-sm font-medium text-white">Events &amp; FRC Calendar</p>
             </div>
           </div>
           <div className="pl-5 flex items-start gap-3">
-            <Briefcase className="w-5 h-5 text-rose-200/85 shrink-0 mt-0.5" />
+            <Briefcase className="w-5 h-5 text-pink-100/90 shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-rose-200/75">03 · Service</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-pink-100/80">03 · Service</p>
               <p className="mt-1 text-sm font-medium text-white">Hours &amp; Task Portal</p>
             </div>
           </div>
@@ -166,8 +166,8 @@ const Login = () => {
       </aside>
 
       {/* Right Sign-In Column */}
-      <main className="lg:col-span-5 relative flex flex-col justify-center items-center px-6 py-12 sm:px-10 bg-[#FFF8FA] dark:bg-background overflow-hidden">
-        {/* Full-height sweeping soft-rose curves on sign-in canvas */}
+      <main className="lg:col-span-5 relative flex flex-col justify-center items-center px-6 py-12 sm:px-10 bg-white dark:bg-background overflow-hidden">
+        {/* Full-height sweeping soft-pink curves on sign-in canvas */}
         <svg
           aria-hidden="true"
           viewBox="0 0 600 900"
@@ -181,15 +181,15 @@ const Login = () => {
           />
           <path
             d="M 460 -40 C 590 180, 310 380, 490 580 C 610 710, 540 840, 420 940"
-            stroke="#F1B5C5"
+            stroke="#F4B2D0"
             strokeWidth="56"
-            strokeOpacity="0.28"
+            strokeOpacity="0.32"
           />
           <defs>
             <linearGradient id="rightSoftRose" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F1B5C5" stopOpacity="0.32" />
-              <stop offset="50%" stopColor="#F1B5C5" stopOpacity="0.16" />
-              <stop offset="100%" stopColor="#F1B5C5" stopOpacity="0.28" />
+              <stop offset="0%" stopColor="#F4B2D0" stopOpacity="0.34" />
+              <stop offset="50%" stopColor="#F4B2D0" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#F4B2D0" stopOpacity="0.3" />
             </linearGradient>
           </defs>
         </svg>
@@ -295,7 +295,7 @@ const Login = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-full text-sm font-medium gap-2"
+              className="w-full h-11 rounded-full text-sm font-medium gap-2 bg-[#E91890] hover:bg-[#C8127B] text-white shadow-sm"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>

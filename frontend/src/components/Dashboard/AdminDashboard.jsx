@@ -27,13 +27,16 @@ const chartConfig = {
   present: {
     label: 'Present',
     theme: {
-      light: '#881D3D',
-      dark: '#F1B5C5',
+      light: '#E91890',
+      dark: '#F4B2D0',
     },
   },
   absent: {
     label: 'Absent',
-    color: '#D94875',
+    theme: {
+      light: '#999999',
+      dark: '#E91890',
+    },
   },
 };
 
