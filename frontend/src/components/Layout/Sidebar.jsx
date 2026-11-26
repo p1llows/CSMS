@@ -133,21 +133,21 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const menuItems = getMenuItems();
 
   return (
-    <div className="bg-card text-foreground border-r border-border h-screen w-64 flex flex-col shrink-0">
+    <div className="bg-gradient-to-b from-[#E91E63] to-[#C2185B] dark:from-[#AD1457] dark:to-[#6A0D37] text-white border-r border-[#C2185B] dark:border-[#4A1830] h-screen w-64 flex flex-col shrink-0">
       {/* Header */}
-      <div className="px-5 py-5 border-b border-border flex items-center gap-3">
+      <div className="px-5 py-5 border-b border-white/15 flex items-center gap-3">
         <img src="/logo.png" alt="CSMS Logo" className="h-11 w-11 object-contain shrink-0" />
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight text-foreground leading-tight">CSMS</h1>
-          <p className="text-xs text-muted-foreground truncate">Community Service Monitor</p>
+          <h1 className="text-lg font-bold tracking-tight text-white leading-tight">CSMS</h1>
+          <p className="text-xs text-white/80 truncate">Community Service Monitor</p>
         </div>
       </div>
 
       {/* User Info */}
-      <div className="px-4 py-3.5 border-b border-border">
+      <div className="px-4 py-3.5 border-b border-white/15">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#F4B2D0]/30 dark:bg-primary/15 border border-[#F4B2D0]/70 dark:border-primary/25 rounded-full flex items-center justify-center shrink-0">
-            <span className="text-[#E91890] dark:text-[#F4B2D0] text-xs font-semibold">
+          <div className="w-9 h-9 bg-white/20 border border-white/35 rounded-full flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-semibold">
               {((user?.name || '')
                 .split(' ')
                 .filter(Boolean)
@@ -157,10 +157,10 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             </span>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
+            <p className="text-sm font-medium text-white truncate">
               {formatDisplayName(user)}
             </p>
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{user?.role}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-white/75">{user?.role}</p>
           </div>
         </div>
       </div>
@@ -176,16 +176,21 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               variant="ghost"
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-muted-foreground transition-colors',
-                'hover:bg-[#F4B2D0]/15 hover:text-foreground dark:hover:bg-accent',
-                isActive && 'bg-gradient-to-r from-[#F4B2D0]/35 to-[#F4B2D0]/15 text-[#E91890] hover:from-[#F4B2D0]/40 hover:to-[#F4B2D0]/20 hover:text-[#E91890] dark:from-primary/20 dark:to-primary/10 dark:text-[#F4B2D0] dark:hover:text-[#F4B2D0] font-semibold border border-[#F4B2D0]/50 dark:border-primary/25 shadow-sm'
+                'w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-white/85 transition-colors',
+                'hover:bg-white/15 hover:text-white',
+                isActive && 'bg-primary-100 text-primary-800 hover:bg-primary-100/90 hover:text-primary-800 dark:bg-primary-200/90 dark:text-primary-900 dark:hover:bg-primary-200 dark:hover:text-primary-900 font-semibold shadow-sm'
               )}
               onClick={() => { setActiveTab(item.id); }}
             >
               <Icon className="w-4 h-4 mr-3 shrink-0" />
               <span className="flex-1 text-left truncate">{item.label}</span>
               {item.id === 'tasks' && taskBadge > 0 && (
-                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#E91890] text-white text-[11px] font-semibold">
+                <span
+                  className={cn(
+                    'ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold',
+                    isActive ? 'bg-[#E91E63] text-white' : 'bg-white/25 text-white'
+                  )}
+                >
                   {taskBadge}
                 </span>
               )}
@@ -195,13 +200,13 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-border space-y-1">
+      <div className="p-3 border-t border-white/15 space-y-1">
         <Button
           variant="ghost"
           className={cn(
-            'w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-muted-foreground',
-            'hover:bg-[#F4B2D0]/15 hover:text-foreground dark:hover:bg-accent',
-            activeTab === 'settings' && 'bg-gradient-to-r from-[#F4B2D0]/35 to-[#F4B2D0]/15 text-[#E91890] dark:from-primary/20 dark:to-primary/10 dark:text-[#F4B2D0] font-semibold border border-[#F4B2D0]/50 dark:border-primary/25'
+            'w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-white/85',
+            'hover:bg-white/15 hover:text-white',
+            activeTab === 'settings' && 'bg-primary-100 text-primary-800 hover:bg-primary-100/90 hover:text-primary-800 dark:bg-primary-200/90 dark:text-primary-900 dark:hover:bg-primary-200 dark:hover:text-primary-900 font-semibold shadow-sm'
           )}
           onClick={() => setActiveTab('settings')}
         >
@@ -210,7 +215,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         </Button>
         <Button
           variant="ghost"
-          className="w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-[#E91890] dark:text-[#F4B2D0] hover:text-[#B81070] dark:hover:text-white hover:bg-[#F4B2D0]/20 dark:hover:bg-primary/15"
+          className="w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-pink-100 hover:text-white hover:bg-white/15"
           onClick={logout}
         >
           <LogOut className="w-4 h-4 mr-3 shrink-0" />

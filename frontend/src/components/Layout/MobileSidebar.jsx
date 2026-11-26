@@ -147,19 +147,19 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
-            <SheetHeader className="p-4 border-b border-border text-left">
-              <SheetTitle className="flex items-center gap-2">
-                <img src="/logo.png" alt="CSMS Logo" className="h-12 w-auto object-contain" />
+          <SheetContent side="left" className="p-0 w-72 bg-gradient-to-b from-[#E91E63] to-[#C2185B] dark:from-[#AD1457] dark:to-[#6A0D37] text-white border-r border-[#C2185B] dark:border-[#4A1830]">
+            <SheetHeader className="p-4 border-b border-white/15 text-left">
+              <SheetTitle className="flex items-center gap-2.5 text-white">
+                <img src="/logo.png" alt="CSMS Logo" className="h-10 w-10 object-contain shrink-0" />
                 <span>CSMS</span>
               </SheetTitle>
             </SheetHeader>
 
             {/* User Info */}
-            <div className="p-4 border-b border-border">
+            <div className="p-4 border-b border-white/15">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
-                  <span className="text-primary font-semibold">
+                <div className="w-10 h-10 bg-white/20 border border-white/35 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold">
                     {((user?.name || '')
                       .split(' ')
                       .filter(Boolean)
@@ -169,16 +169,16 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">
+                  <p className="font-medium text-white">
                     {formatDisplayName(user)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{user?.role}</p>
+                  <p className="text-xs text-white/75">{user?.role}</p>
                 </div>
               </div>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 py-2 px-3 overflow-y-auto">
+            <nav className="flex-1 py-2 px-3 space-y-1 overflow-y-auto">
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -188,16 +188,21 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
                     variant="ghost"
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
-                      'w-full justify-start text-left rounded-none px-4 py-3 text-foreground',
-                      'hover:bg-accent hover:text-accent-foreground',
-                      isActive && 'bg-primary/10 text-primary border-r-2 border-primary'
+                      'w-full justify-start text-left rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-white/85',
+                      'hover:bg-white/15 hover:text-white',
+                      isActive && 'bg-primary-100 text-primary-800 hover:bg-primary-100/90 hover:text-primary-800 dark:bg-primary-200/90 dark:text-primary-900 dark:hover:bg-primary-200 dark:hover:text-primary-900 font-semibold shadow-sm'
                     )}
                     onClick={() => handleTabChange(item.id)}
                   >
                     <Icon className="w-5 h-5 mr-3" />
                     <span className="flex-1 text-left">{item.label}</span>
                     {item.id === 'tasks' && taskBadge > 0 && (
-                      <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-2 rounded-full bg-primary/15 text-primary text-xs font-semibold">
+                      <span
+                        className={cn(
+                          'ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-2 rounded-full text-xs font-semibold',
+                          isActive ? 'bg-[#E91E63] text-white' : 'bg-white/25 text-white'
+                        )}
+                      >
                         {taskBadge}
                       </span>
                     )}
@@ -207,10 +212,13 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
             </nav>
 
             {/* Footer */}
-            <div className="p-3 border-t border-border space-y-2">
+            <div className="p-3 border-t border-white/15 space-y-1">
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-none px-4 py-3 hover:bg-accent hover:text-accent-foreground"
+                className={cn(
+                  'w-full justify-start rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-white/85 hover:bg-white/15 hover:text-white',
+                  activeTab === 'settings' && 'bg-primary-100 text-primary-800 hover:bg-primary-100/90 hover:text-primary-800 dark:bg-primary-200/90 dark:text-primary-900 dark:hover:bg-primary-200 dark:hover:text-primary-900 font-semibold shadow-sm'
+                )}
                 onClick={() => handleTabChange('settings')}
               >
                 <Settings className="w-5 h-5 mr-3" />
@@ -218,7 +226,7 @@ const MobileSidebar = ({ activeTab, setActiveTab }) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="w-full justify-start rounded-lg px-3 py-2.5 h-10 text-sm font-medium text-pink-100 hover:text-white hover:bg-white/15"
                 onClick={logout}
               >
                 <LogOut className="w-4 h-4 mr-3" />
