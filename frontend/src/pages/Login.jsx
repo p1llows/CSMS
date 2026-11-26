@@ -42,7 +42,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-background text-foreground grid grid-cols-1 lg:grid-cols-12">
       {/* Left Editorial Panel (Desktop) */}
-      <aside className="hidden lg:flex lg:col-span-7 relative flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-[#A80D65] via-[#E91890] to-[#F472B6] text-white overflow-hidden">
+      <aside className="hidden lg:flex lg:col-span-7 relative flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-[#AD1457] via-[#E91E63] to-[#F06292] text-white overflow-hidden">
         {/* CCS Building Backdrop (right-anchored & edge-masked like reference) */}
         <div
           aria-hidden="true"
@@ -61,7 +61,7 @@ const Login = () => {
             alt=""
             className="w-full h-full object-cover object-center opacity-50 mix-blend-luminosity contrast-125 brightness-95"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#8A0A52]/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#880E4F]/80 via-transparent to-transparent" />
         </div>
         {/* Subtle architectural grid */}
         <div
@@ -97,16 +97,16 @@ const Login = () => {
           <defs>
             <linearGradient id="leftRibbonFill1" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.24" />
-              <stop offset="65%" stopColor="#F4B2D0" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#A80D65" stopOpacity="0" />
+              <stop offset="65%" stopColor="#F48FB1" stopOpacity="0.14" />
+              <stop offset="100%" stopColor="#AD1457" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="leftRibbonFill2" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F4B2D0" stopOpacity="0.24" />
-              <stop offset="100%" stopColor="#E91890" stopOpacity="0" />
+              <stop offset="0%" stopColor="#F48FB1" stopOpacity="0.24" />
+              <stop offset="100%" stopColor="#E91E63" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="leftRibbonStroke" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.42" />
-              <stop offset="70%" stopColor="#F4B2D0" stopOpacity="0.2" />
+              <stop offset="70%" stopColor="#F48FB1" stopOpacity="0.2" />
               <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -181,15 +181,15 @@ const Login = () => {
           />
           <path
             d="M 460 -40 C 590 180, 310 380, 490 580 C 610 710, 540 840, 420 940"
-            stroke="#F4B2D0"
+            stroke="#F48FB1"
             strokeWidth="56"
             strokeOpacity="0.32"
           />
           <defs>
             <linearGradient id="rightSoftRose" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F4B2D0" stopOpacity="0.34" />
-              <stop offset="50%" stopColor="#F4B2D0" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#F4B2D0" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="#F48FB1" stopOpacity="0.34" />
+              <stop offset="50%" stopColor="#F48FB1" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#F48FB1" stopOpacity="0.3" />
             </linearGradient>
           </defs>
         </svg>
@@ -295,7 +295,7 @@ const Login = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-full text-sm font-medium gap-2 bg-[#E91890] hover:bg-[#C8127B] text-white shadow-sm"
+              className="w-full h-11 rounded-full text-sm font-medium gap-2 bg-[#E91E63] hover:bg-[#D81B60] text-white shadow-sm"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>

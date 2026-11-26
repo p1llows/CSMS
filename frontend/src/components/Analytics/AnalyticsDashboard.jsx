@@ -26,11 +26,11 @@ import {
 } from '@/components/ui/chart';
 
 const EVENT_TYPE_COLORS = [
-  '#E91890',
-  '#F4B2D0',
+  '#E91E63',
+  '#F48FB1',
   '#999999',
-  '#B81070',
-  '#F8CBE0',
+  '#C2185B',
+  '#F8BBD0',
   '#111111',
 ];
 
@@ -38,8 +38,8 @@ const attendanceChartConfig = {
   attendanceRate: {
     label: 'Attendance Rate (%)',
     theme: {
-      light: '#E91890',
-      dark: '#F472B6',
+      light: '#E91E63',
+      dark: '#F06292',
     },
   },
 };
@@ -48,15 +48,15 @@ const serviceHoursChartConfig = {
   hoursRendered: {
     label: 'Hours Rendered',
     theme: {
-      light: '#E91890',
-      dark: '#F4B2D0',
+      light: '#E91E63',
+      dark: '#F48FB1',
     },
   },
   penaltyHours: {
     label: 'Penalty Hours',
     theme: {
       light: '#999999',
-      dark: '#E91890',
+      dark: '#E91E63',
     },
   },
 };
