@@ -66,7 +66,7 @@ router.get('/', authenticateToken, async (req, res) => {
           SELECT e.id, e.penalty_hours, ARRAY_AGG(a.user_id) FILTER (WHERE a.user_id IS NOT NULL) AS present_user_ids
           FROM events e
           LEFT JOIN attendance a ON e.id = a.event_id AND LOWER(a.status) = 'present'
-          WHERE e.penalty_hours > 0
+          WHERE e.penalty_hours > 0 AND e.event_date <= CURRENT_DATE
           GROUP BY e.id, e.penalty_hours
         `)
       ]);
@@ -113,7 +113,7 @@ router.get('/', authenticateToken, async (req, res) => {
         lastEventType: null,
         lastEventDate: null,
         present: 0,
-        absent: totalStudents,
+        absent: 0,
         attendanceRate: overallAttendanceRate,
         overallAttendanceRate
       };
@@ -163,12 +163,33 @@ router.get('/', authenticateToken, async (req, res) => {
         highestPenaltyUserName,
       };
 
+      const attendanceSeriesRes = await db.query(`
+        SELECT e.id, e.name, e.type, e.event_date,
+               COUNT(CASE WHEN LOWER(a.status) = 'present' AND LOWER(u.role) = 'student' THEN 1 END)::int AS present_count
+        FROM events e
+        LEFT JOIN attendance a ON e.id = a.event_id
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE e.event_date <= CURRENT_DATE
+        GROUP BY e.id, e.name, e.type, e.event_date, e.start_time
+        ORDER BY e.event_date ASC, e.start_time ASC
+      `);
+
+      const attendanceSeries = attendanceSeriesRes.rows.map(ev => ({
+        id: ev.id,
+        name: ev.name,
+        type: ev.type,
+        event_date: ev.event_date,
+        present: ev.present_count,
+        absent: Math.max(0, totalStudents - ev.present_count),
+      }));
+
       return res.json({
         totalStudents,
         totalEvents,
         upcomingEvents,
         recentTasks,
         attendanceStats,
+        attendanceSeries,
         serviceHoursStats,
       });
     }
@@ -206,6 +227,7 @@ router.get('/', authenticateToken, async (req, res) => {
         SELECT COALESCE(SUM(e.penalty_hours), 0)::int AS total
         FROM events e
         WHERE e.penalty_hours > 0
+          AND e.event_date <= CURRENT_DATE
           AND e.id NOT IN (
             SELECT event_id FROM attendance WHERE user_id = $1 AND LOWER(status) = 'present'
           )

@@ -122,7 +122,9 @@ router.get('/overview', authenticateToken, requireAdminOrFaculty, async (req, re
 
     // 4) Students With Penalty
     let penaltyStudentsCount = 0;
-    const penalizedEvents = events.filter(e => Number(e.penalty_hours || 0) > 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    const penalizedEvents = events.filter(e => Number(e.penalty_hours || 0) > 0 && new Date(e.event_date) <= todayEnd);
     if (penalizedEvents.length > 0) {
       const studentsRes = await db.query(`SELECT id FROM users WHERE LOWER(role) = 'student'`);
       const students = studentsRes.rows;

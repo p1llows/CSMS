@@ -20,11 +20,22 @@ function mapEvent(e) {
     return `${hh}:${mm}`;
   };
 
+  const toYMD = (d) => {
+    if (!d) return d;
+    if (d instanceof Date) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return String(d).slice(0, 10);
+  };
+
   return {
     id: e.id,
     name: e.name,
     type: e.type,
-    event_date: e.event_date instanceof Date ? e.event_date.toISOString().split('T')[0] : e.event_date,
+    event_date: toYMD(e.event_date),
     start_time: toHHMM(e.start_time),
     end_time: toHHMM(e.end_time),
     location: e.location || '',
