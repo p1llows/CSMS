@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Search, Download, CheckCircle, XCircle, List, LayoutGrid, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Download, CheckCircle, XCircle, Eye, CheckSquare, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -88,11 +88,24 @@ const AttendanceManagement = () => {
     return eventsSorted;
   }, [eventTypeFilter, frcEventsSorted, otherEventsSorted, eventsSorted]);
 
+  const isUpcomingEvent = (ev) => {
+    if (!ev?.event_date) return false;
+    const match = String(ev.event_date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const evDate = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : new Date(ev.event_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return evDate > today;
+  };
+
   const computeTotalPenalty = (studentId) => {
     let total = 0;
     for (const ev of eventsToShow) {
       const key = `${studentId}-${ev.id}`;
-      const status = (attendanceMap.get(key) || 'absent').toLowerCase();
+      const recorded = attendanceMap.get(key);
+      if (!recorded && isUpcomingEvent(ev)) continue;
+      const status = (recorded || 'absent').toLowerCase();
       if (status === 'absent') {
         const pen = Number(ev.penalty_hours || 0);
         total += isNaN(pen) ? 0 : pen;
@@ -376,10 +389,11 @@ const AttendanceManagement = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      present: { icon: CheckCircle, class: 'bg-green-100 text-green-800', text: 'Present' },
-      absent: { icon: XCircle, class: 'bg-red-100 text-red-800', text: 'Absent' }
+      present: { icon: CheckCircle, class: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400', text: 'Present' },
+      absent: { icon: XCircle, class: 'bg-rose-500/15 text-rose-700 dark:text-rose-400', text: 'Absent' },
+      upcoming: { icon: Clock, class: 'bg-muted text-muted-foreground', text: 'Upcoming' }
     };
-    const badge = badges[status] || { icon: XCircle, class: 'bg-gray-100 text-gray-800', text: 'Unknown' };
+    const badge = badges[status] || { icon: XCircle, class: 'bg-muted text-muted-foreground', text: 'Unknown' };
     const Icon = badge.icon;
     return (
       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${badge.class}`}>
@@ -397,40 +411,260 @@ const AttendanceManagement = () => {
     );
   }
 
+  const isStudentRole = (user?.role || '').toString().toUpperCase() === 'STUDENT';
+  const isAdminRole = (user?.role || '').toString().toUpperCase() === 'ADMIN';
+  const cardClass =
+    'rounded-2xl border border-border/60 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.03)] dark:shadow-none overflow-hidden';
+
+  const renderStudentRow = (student, isMatrix) => {
+    const penalty = computeTotalPenalty(student.id);
+    return (
+      <tr key={student.id} className="hover:bg-muted/35 transition-colors">
+        <td className="sticky left-0 bg-card pl-4 pr-3 py-3 whitespace-nowrap z-10 min-w-[200px] sm:min-w-[240px] border-r border-border/50">
+          <div className="text-sm font-medium text-foreground">{getDisplayName(student)}</div>
+          <div className="text-xs text-muted-foreground font-mono tabular-nums">{student.student_id}</div>
+        </td>
+        {eventsToShow.map((event) => {
+          const key = `${student.id}-${event.id}`;
+          const recorded = attendanceMap.get(key);
+          const status = (!recorded && isUpcomingEvent(event))
+            ? 'upcoming'
+            : (recorded || 'absent').toLowerCase();
+          if (isMatrix) {
+            const checked = status === 'present';
+            return (
+              <td key={event.id} className="px-3 py-3 whitespace-nowrap text-center align-middle">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-primary border-border rounded focus:ring-primary cursor-pointer"
+                  checked={checked}
+                  onChange={(e) => recordAttendance(event.id, student.id, e.target.checked ? 'present' : 'absent')}
+                  aria-label={`Toggle attendance for ${getDisplayName(student)} in ${event.name}`}
+                />
+              </td>
+            );
+          }
+          return (
+            <td key={event.id} className="px-2 py-3 whitespace-nowrap text-center align-middle">
+              {getStatusBadge(status)}
+            </td>
+          );
+        })}
+        <td className="pl-3 pr-5 py-3 whitespace-nowrap text-right align-middle w-28">
+          <span
+            className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold tabular-nums ${
+              penalty > 0
+                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {penalty}h
+          </span>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderSectionGroup = (year, section, students, modePrefix, isMatrix) => {
+    const secKey = `${modePrefix}|${year}|${section}`;
+    const isCollapsed = collapsedSections[secKey];
+    return (
+      <React.Fragment key={`${modePrefix}-${secKey}`}>
+        <tr className="bg-muted/25 hover:bg-muted/45 transition-colors">
+          <td
+            className="sticky left-0 bg-muted/25 pl-4 pr-3 py-2 text-xs font-medium text-muted-foreground cursor-pointer z-20 border-r border-border/50"
+            onClick={() => toggleSection(secKey)}
+          >
+            <div className="inline-flex items-center gap-1.5">
+              {isCollapsed ? (
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              )}
+              <span className="text-foreground font-medium">Section {section}</span>
+              <span className="text-muted-foreground tabular-nums">· {students.length}</span>
+            </div>
+          </td>
+          <td colSpan={eventsToShow.length + 1} className="px-3 py-2" />
+        </tr>
+        {!isCollapsed && students.map((student) => renderStudentRow(student, isMatrix))}
+      </React.Fragment>
+    );
+  };
+
+  const renderAttendanceTable = (isMatrix) => {
+    const modePrefix = isMatrix ? 'tab' : 'list';
+    const hasNoStudents = isStudentRole
+      ? filteredListSections.length === 0
+      : sectionsForAdmin.length === 0;
+
+    return (
+      <Card className={cardClass}>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border/70 text-xs sm:text-sm">
+            <thead className="bg-muted/40">
+              <tr>
+                <th
+                  rowSpan={2}
+                  className="sticky left-0 bg-muted/40 backdrop-blur-sm pl-4 pr-3 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] z-20 min-w-[200px] sm:min-w-[240px] border-r border-border/50"
+                >
+                  {isStudentRole ? 'Student' : 'Student'}
+                </th>
+                {eventTypeFilter !== 'Events' && frcEventsSorted.length > 0 && (
+                  <th
+                    colSpan={frcEventsSorted.length}
+                    className="px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] border-b border-border/50"
+                  >
+                    FRC
+                  </th>
+                )}
+                {eventTypeFilter !== 'FRC' && otherEventsSorted.length > 0 && (
+                  <th
+                    colSpan={otherEventsSorted.length}
+                    className="px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] border-b border-border/50"
+                  >
+                    Events
+                  </th>
+                )}
+                <th
+                  rowSpan={2}
+                  className="pl-3 pr-5 py-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.12em] w-28"
+                >
+                  Penalty
+                </th>
+              </tr>
+              <tr>
+                {eventTypeFilter !== 'Events' && frcEventsSorted.map((event) => (
+                  <th
+                    key={`${modePrefix}-frc-${event.id}`}
+                    className="px-2 py-1.5 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wider min-w-[96px]"
+                  >
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="truncate max-w-[100px] text-foreground font-medium">{event.name}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {new Date(event.event_date).toLocaleDateString()}
+                      </span>
+                      <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold tabular-nums">
+                        {Number(event.penalty_hours || 0)}h
+                      </span>
+                    </div>
+                  </th>
+                ))}
+                {eventTypeFilter !== 'FRC' && otherEventsSorted.map((event) => (
+                  <th
+                    key={`${modePrefix}-evt-${event.id}`}
+                    className="px-2 py-1.5 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wider min-w-[96px]"
+                  >
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="truncate max-w-[100px] text-foreground font-medium">{event.name}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {new Date(event.event_date).toLocaleDateString()}
+                      </span>
+                      <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold tabular-nums">
+                        {Number(event.penalty_hours || 0)}h
+                      </span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border/60">
+              {studentsError && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-destructive" colSpan={2 + eventsToShow.length}>
+                    {studentsError}
+                  </td>
+                </tr>
+              )}
+              {!studentsError && hasNoStudents && (
+                <tr>
+                  <td className="px-6 py-10 text-sm text-muted-foreground text-center" colSpan={2 + eventsToShow.length}>
+                    No students found.
+                  </td>
+                </tr>
+              )}
+              {isStudentRole && !isMatrix ? (
+                filteredListSections.map(({ section, students }) => (
+                  <React.Fragment key={section}>
+                    {students.map((student) => renderStudentRow(student, false))}
+                  </React.Fragment>
+                ))
+              ) : yearFilter === 'all' ? (
+                filteredGroupedYearSections.map(({ year, sections, total }) => (
+                  <React.Fragment key={`${modePrefix}-year-${year}`}>
+                    <tr className="bg-muted/55">
+                      <td className="sticky left-0 bg-muted/55 pl-4 pr-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground z-30 border-r border-border/50">
+                        Year Level {year} <span className="text-muted-foreground font-normal">({total})</span>
+                      </td>
+                      <td colSpan={eventsToShow.length + 1} className="px-3 py-2" />
+                    </tr>
+                    {sections.map(({ section, students }) =>
+                      renderSectionGroup(year, section, students, modePrefix, isMatrix)
+                    )}
+                  </React.Fragment>
+                ))
+              ) : (
+                sectionsForAdmin.map(({ section, students }) =>
+                  renderSectionGroup(yearFilter, section, students, modePrefix, isMatrix)
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+        {eventsToShow.length === 0 && (
+          <div className="px-4 py-2.5 border-t border-border/60 bg-muted/20 text-xs text-muted-foreground">
+            No events recorded for the selected filter yet. Events will appear as columns here once scheduled.
+          </div>
+        )}
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-foreground">Attendance Management</h2>
-        <div className="flex items-center gap-2">
-          {((user?.role || '').toString().toUpperCase() === 'ADMIN') && (
+      <div className="flex flex-wrap justify-between items-end gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground mb-1">
+            Attendance Roster
+          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Attendance Management
+          </h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {isAdminRole && (
             <>
-              <Button onClick={onPrint} className="inline-flex items-center gap-2">
-                <Download className="w-4 h-4" />
+              <Button onClick={onPrint} size="sm" className="rounded-full px-4 gap-2">
+                <Download className="w-3.5 h-3.5" />
                 Print
               </Button>
-              <div className="inline-flex rounded-md border border-border overflow-hidden">
-                <Button
-                  variant="ghost"
-                  className={
-                    `rounded-none px-3 py-2 ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'hover:bg-accent hover:text-accent-foreground'}`
-                  }
+              <div className="inline-flex items-center rounded-full bg-muted p-1">
+                <button
+                  type="button"
                   onClick={() => setViewMode('list')}
                   aria-pressed={viewMode === 'list'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <List className="w-4 h-4 mr-2" />
-                  List
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={
-                    `rounded-none px-3 py-2 border-l border-border ${viewMode === 'matrix' ? 'bg-primary/10 text-primary' : 'hover:bg-accent hover:text-accent-foreground'}`
-                  }
+                  <Eye className="w-3.5 h-3.5" />
+                  View
+                </button>
+                <button
+                  type="button"
                   onClick={() => setViewMode('matrix')}
                   aria-pressed={viewMode === 'matrix'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    viewMode === 'matrix'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <LayoutGrid className="w-4 h-4 mr-2" />
-                  Matrix
-                </Button>
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  Mark
+                </button>
               </div>
             </>
           )}
@@ -439,25 +673,27 @@ const AttendanceManagement = () => {
 
       <style>{`@media print { body * { visibility: hidden; } #attendance-print, #attendance-print * { visibility: visible; } #attendance-print { position: absolute; left: 0; top: 0; width: 100%; } }`}</style>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
         <div className="w-full sm:flex-1">
-          <Label htmlFor="attendance-search" className="inline-block mb-1">Search</Label>
+          <Label htmlFor="attendance-search" className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Search
+          </Label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               id="attendance-search"
               type="text"
               placeholder="Search students..."
-              className="pl-10"
+              className="pl-9 rounded-xl bg-card"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
         <div className="w-full sm:w-auto">
-          <Label className="inline-block mb-1">Event</Label>
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Event</Label>
           <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[160px] rounded-xl bg-card">
               <SelectValue placeholder="Filter events" />
             </SelectTrigger>
             <SelectContent>
@@ -467,28 +703,27 @@ const AttendanceManagement = () => {
             </SelectContent>
           </Select>
         </div>
-        {((user?.role || '').toString().toUpperCase() !== 'STUDENT') && (
+        {!isStudentRole && (
           <div className="w-full sm:w-auto">
             <Tabs value={yearFilter} onValueChange={setYearFilter}>
-              <TabsList className="rounded-md bg-accent/60 p-0 border border-border text-muted-foreground overflow-hidden h-9">
-                <TabsTrigger value="all" aria-label="All years" className="rounded-none first:rounded-l-md last:rounded-r-md px-3 py-0 h-9 text-sm transition-colors hover:text-foreground data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:rounded-md data-[state=active]:shadow-[inset_0_1px_0_0_rgba(236,72,153,0.45),inset_0_-1px_0_0_rgba(236,72,153,0.45)]">
-                  <span className="md:hidden">All</span>
-                  <span className="hidden md:inline">All</span>
+              <TabsList className="rounded-full bg-muted p-1 text-muted-foreground h-10">
+                <TabsTrigger value="all" aria-label="All years" className="rounded-full px-3 h-8 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                  All
                 </TabsTrigger>
-                <TabsTrigger value="1" aria-label="1st Years" className="rounded-none first:rounded-l-md last:rounded-r-md px-3 py-0 h-9 text-sm transition-colors hover:text-foreground data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:rounded-md data-[state=active]:shadow-[inset_0_1px_0_0_rgba(236,72,153,0.45),inset_0_-1px_0_0_rgba(236,72,153,0.45)]">
-                  <span className="md:hidden">1st Yrs</span>
+                <TabsTrigger value="1" aria-label="1st Years" className="rounded-full px-3 h-8 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                  <span className="md:hidden">1st</span>
                   <span className="hidden md:inline">1st Years</span>
                 </TabsTrigger>
-                <TabsTrigger value="2" aria-label="2nd Years" className="rounded-none first:rounded-l-md last:rounded-r-md px-3 py-0 h-9 text-sm transition-colors hover:text-foreground data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:rounded-md data-[state=active]:shadow-[inset_0_1px_0_0_rgba(236,72,153,0.45),inset_0_-1px_0_0_rgba(236,72,153,0.45)]">
-                  <span className="md:hidden">2nd Yrs</span>
+                <TabsTrigger value="2" aria-label="2nd Years" className="rounded-full px-3 h-8 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                  <span className="md:hidden">2nd</span>
                   <span className="hidden md:inline">2nd Years</span>
                 </TabsTrigger>
-                <TabsTrigger value="3" aria-label="3rd Years" className="rounded-none first:rounded-l-md last:rounded-r-md px-3 py-0 h-9 text-sm transition-colors hover:text-foreground data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:rounded-md data-[state=active]:shadow-[inset_0_1px_0_0_rgba(236,72,153,0.45),inset_0_-1px_0_0_rgba(236,72,153,0.45)]">
-                  <span className="md:hidden">3rd Yrs</span>
+                <TabsTrigger value="3" aria-label="3rd Years" className="rounded-full px-3 h-8 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                  <span className="md:hidden">3rd</span>
                   <span className="hidden md:inline">3rd Years</span>
                 </TabsTrigger>
-                <TabsTrigger value="4" aria-label="4th Years" className="rounded-none first:rounded-l-md last:rounded-r-md px-3 py-0 h-9 text-sm transition-colors hover:text-foreground data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:rounded-md data-[state=active]:shadow-[inset_0_1px_0_0_rgba(236,72,153,0.45),inset_0_-1px_0_0_rgba(236,72,153,0.45)]">
-                  <span className="md:hidden">4th Yrs</span>
+                <TabsTrigger value="4" aria-label="4th Years" className="rounded-full px-3 h-8 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                  <span className="md:hidden">4th</span>
                   <span className="hidden md:inline">4th Years</span>
                 </TabsTrigger>
               </TabsList>
@@ -498,382 +733,7 @@ const AttendanceManagement = () => {
       </div>
 
       <div id="attendance-print" ref={printRef}>
-      {viewMode === 'matrix' && ((user?.role || '').toString().toUpperCase() !== 'STUDENT') ? (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-xs sm:text-sm">
-              <thead className="bg-accent">
-                <tr>
-                  <th rowSpan={2} className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider z-20 w-[100px] sm:w-[160px] border-r border-border">
-                    Student
-                  </th>
-                  {eventTypeFilter !== 'Events' && frcEventsSorted.length > 0 && (
-                    <th colSpan={frcEventsSorted.length} className="px-1 sm:px-2 py-2 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      FRC
-                    </th>
-                  )}
-                  {eventTypeFilter !== 'FRC' && otherEventsSorted.length > 0 && (
-                    <th colSpan={otherEventsSorted.length} className="px-1 sm:px-2 py-2 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Events
-                    </th>
-                  )}
-                  <th rowSpan={2} className="px-1 sm:px-3 py-2 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider w-[60px] sm:w-[80px]">
-                    Penalty
-                  </th>
-                </tr>
-                <tr>
-                  {eventTypeFilter !== 'Events' && frcEventsSorted.map((event) => (
-                    <th key={`frc-${event.id}`} className="px-1 sm:px-2 py-1 text-center text-[9px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[80px] sm:w-[120px]">
-                      <div className="flex flex-col items-center">
-                        <span className="truncate max-w-[70px] sm:max-w-[110px] text-[8px] sm:text-[10px]">{event.name}</span>
-                        <span className="text-[7px] sm:text-[9px] text-muted-foreground">{new Date(event.event_date).toLocaleDateString()}</span>
-                        <span className="text-[7px] sm:text-[9px] text-red-600 font-semibold">{Number(event.penalty_hours || 0)}h</span>
-                      </div>
-                    </th>
-                  ))}
-                  {eventTypeFilter !== 'FRC' && otherEventsSorted.map((event) => (
-                    <th key={`evt-${event.id}`} className="px-1 sm:px-2 py-1 text-center text-[9px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[80px] sm:w-[120px]">
-                      <div className="flex flex-col items-center">
-                        <span className="truncate max-w-[70px] sm:max-w-[110px] text-[8px] sm:text-[10px]">{event.name}</span>
-                        <span className="text-[7px] sm:text-[9px] text-muted-foreground">{new Date(event.event_date).toLocaleDateString()}</span>
-                        <span className="text-[7px] sm:text-[9px] text-red-600 font-semibold">{Number(event.penalty_hours || 0)}h</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
-                {studentsError && (
-                  <tr>
-                    <td className="px-6 py-4 text-sm text-red-600" colSpan={1 + eventsToShow.length}>
-                      {studentsError}
-                    </td>
-                  </tr>
-                )}
-                {(!studentsError && sectionsForAdmin.length === 0) && (
-                  <tr>
-                    <td className="px-6 py-6 text-sm text-muted-foreground text-center" colSpan={1 + eventsToShow.length}>
-                      No students found.
-                    </td>
-                  </tr>
-                )}
-                {(yearFilter === 'all' ? filteredGroupedYearSections : []).map(({ year, sections, total }) => (
-                  <React.Fragment key={`tab-year-${year}`}>
-                    <tr className="bg-accent">
-                      <td className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-2 text-[11px] sm:text-sm font-bold text-foreground z-30 w-[100px] sm:w-[160px] border-r border-border">
-                        Year Level {year} ({total} students)
-                      </td>
-                      <td colSpan={eventsToShow.length + 1} className="px-3 py-2 bg-accent"></td>
-                    </tr>
-                    {sections.map(({ section, students }) => {
-                      const secKey = `tab|${year}|${section}`;
-                      return (
-                        <React.Fragment key={secKey}>
-                          <tr className="bg-accent">
-                            <td
-                              className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-2 text-[11px] sm:text-sm font-semibold text-foreground cursor-pointer z-20 w-[100px] sm:w-[160px] border-r border-border"
-                              onClick={() => toggleSection(secKey)}
-                            >
-                              <span className="inline-flex items-center mr-2">
-                                {collapsedSections[secKey] ? (
-                                  <ChevronRight className="w-4 h-4" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4" />
-                                )}
-                              </span>
-                              Section {section} ({students.length} students)
-                            </td>
-                            <td colSpan={eventsToShow.length + 1} className="px-3 py-2 bg-accent"></td>
-                          </tr>
-                          {!collapsedSections[secKey] && students.map((student) => (
-                            <tr key={student.id} className="hover:bg-accent/40 h-12 sm:h-14 align-middle">
-                              <td className="sticky left-0 bg-card hover:bg-accent/40 pl-2 pr-1 sm:px-4 py-2 whitespace-nowrap text-[11px] sm:text-sm z-10 align-middle border-r border-border">
-                                <div>
-                                  <div className="font-medium text-foreground">
-                                    {getDisplayName(student)}
-                                  </div>
-                                  <div className="text-muted-foreground">{student.student_id}</div>
-                                </div>
-                              </td>
-                              {eventsToShow.map((event) => {
-                                const key = `${student.id}-${event.id}`;
-                                const status = (attendanceMap.get(key) || 'absent').toLowerCase();
-                                const checked = status === 'present';
-                                return (
-                                  <td key={event.id} className="px-3 py-3 whitespace-nowrap text-center align-middle">
-                                    <input
-                                      type="checkbox"
-                                      className="w-3 h-3 sm:w-4 sm:h-4 accent-primary border-border rounded focus:ring-primary-500 cursor-pointer"
-                                      checked={checked}
-                                      onChange={(e) => recordAttendance(event.id, student.id, e.target.checked ? 'present' : 'absent')}
-                                      aria-label={`Toggle attendance for ${getDisplayName(student)} in ${event.name}`}
-                                    />
-                                  </td>
-                                );
-                              })}
-                              <td className="px-1 sm:px-2 py-3 text-[10px] sm:text-sm text-center font-semibold whitespace-nowrap align-middle">{computeTotalPenalty(student.id)}</td>
-                            </tr>
-                          ))}
-                        </React.Fragment>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-                {(yearFilter !== 'all') && sectionsForAdmin.map(({ section, students }) => {
-                  const secKey = `tab|${yearFilter}|${section}`;
-                  return (
-                    <React.Fragment key={secKey}>
-                      <tr className="bg-accent">
-                        <td
-                          className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-2 text-[11px] sm:text-sm font-semibold text-foreground cursor-pointer z-20 w-[100px] sm:w-[160px] border-r border-border"
-                          onClick={() => toggleSection(secKey)}
-                        >
-                          <span className="inline-flex items-center mr-2">
-                            {collapsedSections[secKey] ? (
-                              <ChevronRight className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </span>
-                          Section {section} ({students.length} students)
-                        </td>
-                        <td colSpan={eventsToShow.length + 1} className="px-3 py-2 bg-accent"></td>
-                      </tr>
-                      {!collapsedSections[secKey] && students.map((student) => (
-                        <tr key={student.id} className="hover:bg-accent/40 h-12 sm:h-14 align-middle">
-                          <td className="sticky left-0 bg-card hover:bg-accent/40 pl-1 pr-1 sm:px-3 py-2 whitespace-nowrap text-[11px] sm:text-sm z-20 w-[80px] sm:w-[140px] border-r border-border">
-                            <div>
-                              <div className="font-medium text-foreground">
-                                {getDisplayName(student)}
-                              </div>
-                              <div className="text-muted-foreground">{student.student_id}</div>
-                            </div>
-                          </td>
-                          {eventsToShow.map((event) => {
-                            const key = `${student.id}-${event.id}`;
-                            const status = (attendanceMap.get(key) || 'absent').toLowerCase();
-                            const checked = status === 'present';
-                            return (
-                              <td key={event.id} className="px-3 py-3 whitespace-nowrap text-center align-middle">
-                                <input
-                                  type="checkbox"
-                                  className="w-3 h-3 sm:w-4 sm:h-4 accent-primary border-border rounded focus:ring-primary-500 cursor-pointer"
-                                  checked={checked}
-                                  onChange={(e) => recordAttendance(event.id, student.id, e.target.checked ? 'present' : 'absent')}
-                                  aria-label={`Toggle attendance for ${getDisplayName(student)} in ${event.name}`}
-                                />
-                              </td>
-                            );
-                          })}
-                          <td className="px-1 sm:px-2 py-3 text-[10px] sm:text-sm text-center font-semibold whitespace-nowrap align-middle">{computeTotalPenalty(student.id)}</td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-xs sm:text-sm">
-              <thead className="bg-accent">
-                <tr>
-                  <th rowSpan={2} className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-3 text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider z-20 w-[100px] sm:w-[160px] border-r border-border">
-                    {((user?.role || '').toString().toUpperCase() === 'STUDENT') ? 'Me' : 'Student'}
-                  </th>
-                  {eventTypeFilter !== 'Events' && frcEventsSorted.length > 0 && (
-                    <th colSpan={frcEventsSorted.length} className="px-1 sm:px-2 py-2 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      FRC
-                    </th>
-                  )}
-                  {eventTypeFilter !== 'FRC' && otherEventsSorted.length > 0 && (
-                    <th colSpan={otherEventsSorted.length} className="px-1 sm:px-2 py-2 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Events
-                    </th>
-                  )}
-                  <th rowSpan={2} className="px-1 sm:px-3 py-2 text-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider w-[60px] sm:w-[80px]">
-                    Penalty
-                  </th>
-                </tr>
-                <tr>
-                  {eventTypeFilter !== 'Events' && frcEventsSorted.map((event) => (
-                    <th key={`list-frc-${event.id}`} className="px-1 sm:px-2 py-1 text-center text-[9px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[80px] sm:w-[120px]">
-                      <div className="flex flex-col items-center">
-                        <span className="truncate max-w-[70px] sm:max-w-[110px] text-[8px] sm:text-[10px]">{event.name}</span>
-                        <span className="text-[7px] sm:text-[9px] text-muted-foreground">{new Date(event.event_date).toLocaleDateString()}</span>
-                        <span className="text-[7px] sm:text-[9px] text-red-600 font-semibold">{Number(event.penalty_hours || 0)}h</span>
-                      </div>
-                    </th>
-                  ))}
-                  {eventTypeFilter !== 'FRC' && otherEventsSorted.map((event) => (
-                    <th key={`list-evt-${event.id}`} className="px-1 sm:px-2 py-1 text-center text-[9px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wider w-[80px] sm:w-[120px]">
-                      <div className="flex flex-col items-center">
-                        <span className="truncate max-w-[70px] sm:max-w-[110px] text-[8px] sm:text-[10px]">{event.name}</span>
-                        <span className="text-[7px] sm:text-[9px] text-muted-foreground">{new Date(event.event_date).toLocaleDateString()}</span>
-                        <span className="text-[7px] sm:text-[9px] text-red-600 font-semibold">{Number(event.penalty_hours || 0)}h</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
-                {studentsError && (
-                  <tr>
-                    <td className="px-6 py-4 text-sm text-red-600" colSpan={1 + eventsToShow.length}>
-                      {studentsError}
-                    </td>
-                  </tr>
-                )}
-                {(!studentsError && (String((user?.role || '')).toUpperCase() === 'STUDENT' ? filteredListSections.length === 0 : sectionsForAdmin.length === 0)) && (
-                  <tr>
-                    <td className="px-6 py-6 text-sm text-muted-foreground text-center" colSpan={1 + eventsToShow.length}>
-                      No students found.
-                    </td>
-                  </tr>
-                )}
-                {(String((user?.role || '')).toUpperCase() === 'STUDENT') ? (
-                  filteredListSections.map(({ section, students }) => (
-                    <React.Fragment key={section}>
-                      {students.map((student) => (
-                        <tr key={student.id} className="hover:bg-accent/40">
-                          <td className="sticky left-0 bg-card hover:bg-accent/40 pl-1 pr-1 sm:px-3 py-2 whitespace-nowrap text-[11px] sm:text-sm z-20 w-[80px] sm:w-[140px] border-r border-border">
-                            <div>
-                              <div className="font-medium text-foreground">
-                                {getDisplayName(student)}
-                              </div>
-                              <div className="text-muted-foreground">{student.student_id}</div>
-                            </div>
-                          </td>
-                          {eventsToShow.map((event) => {
-                            const key = `${student.id}-${event.id}`;
-                            const status = (attendanceMap.get(key) || 'absent').toLowerCase();
-                            return (
-                              <td key={event.id} className="px-1 py-2 whitespace-nowrap text-center">
-                                {getStatusBadge(status)}
-                              </td>
-                            );
-                          })}
-                          <td className="px-1 sm:px-2 py-2 text-[10px] sm:text-sm text-center font-semibold whitespace-nowrap">{computeTotalPenalty(student.id)}</td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  (yearFilter === 'all'
-                    ? (
-                      filteredGroupedYearSections.map(({ year, sections, total }) => (
-                        <React.Fragment key={`list-year-${year}`}>
-                          <tr className="bg-accent">
-                            <td className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-2 text-sm font-bold text-foreground z-30 w-[100px] sm:w-[160px] border-r border-border">
-                              Year Level {year} ({total} students)
-                            </td>
-                            <td colSpan={eventsToShow.length + 1} className="px-3 py-2 bg-accent"></td>
-                          </tr>
-                          {sections.map(({ section, students }) => {
-                            const secKey = `list|${year}|${section}`;
-                            return (
-                              <React.Fragment key={`list-${secKey}`}>
-                                <tr className="bg-accent">
-                                  <td
-                                    className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-2 text-sm font-semibold text-foreground z-20 w-[100px] sm:w-[160px] border-r border-border cursor-pointer"
-                                    onClick={() => toggleSection(secKey)}
-                                  >
-                                    <span className="inline-flex items-center mr-2">
-                                      {collapsedSections[secKey] ? (
-                                        <ChevronRight className="w-4 h-4" />
-                                      ) : (
-                                        <ChevronDown className="w-4 h-4" />
-                                      )}
-                                    </span>
-                                    Section {section} ({students.length} students)
-                                  </td>
-                                  <td colSpan={eventsToShow.length + 1} className="px-3 py-2 bg-accent"></td>
-                                </tr>
-                                {!collapsedSections[secKey] && students.map((student) => (
-                                  <tr key={student.id} className="hover:bg-accent/40 h-12 sm:h-14 align-middle">
-                                    <td className="sticky left-0 bg-card hover:bg-accent/40 pl-1 pr-1 sm:px-3 py-2 whitespace-nowrap text-[11px] sm:text-sm z-20 w-[80px] sm:w-[140px] border-r border-border">
-                                      <div>
-                                        <div className="font-medium text-foreground">
-                                          {getDisplayName(student)}
-                                        </div>
-                                        <div className="text-muted-foreground">{student.student_id}</div>
-                                      </div>
-                                    </td>
-                                    {eventsToShow.map((event) => {
-                                      const key = `${student.id}-${event.id}`;
-                                      const status = (attendanceMap.get(key) || 'absent').toLowerCase();
-                                      return (
-                                        <td key={event.id} className="px-1 py-2 whitespace-nowrap text-center align-middle">
-                                          {getStatusBadge(status)}
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="px-1 sm:px-2 py-2 text-[10px] sm:text-sm text-center font-semibold whitespace-nowrap">{computeTotalPenalty(student.id)}</td>
-                                  </tr>
-                                ))}
-                              </React.Fragment>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))
-                    )
-                    : (
-                      sectionsForAdmin.map(({ section, students }) => {
-                        const secKey = `list|${yearFilter}|${section}`;
-                        return (
-                          <React.Fragment key={`list-${secKey}`}>
-                            <tr className="bg-accent">
-                              <td
-                                className="sticky left-0 bg-accent pl-2 pr-1 sm:px-4 py-2 text-sm font-semibold text-foreground z-20 w-[100px] sm:w-[160px] border-r border-border cursor-pointer"
-                                onClick={() => toggleSection(secKey)}
-                              >
-                                <span className="inline-flex items-center mr-2">
-                                  {collapsedSections[secKey] ? (
-                                    <ChevronRight className="w-4 h-4" />
-                                  ) : (
-                                    <ChevronDown className="w-4 h-4" />
-                                  )}
-                                </span>
-                                Section {section} ({students.length} students)
-                              </td>
-                              <td colSpan={eventsToShow.length + 1} className="px-3 py-2 bg-accent"></td>
-                            </tr>
-                            {!collapsedSections[secKey] && students.map((student) => (
-                              <tr key={student.id} className="hover:bg-accent/40 h-12 sm:h-14 align-middle">
-                                <td className="sticky left-0 bg-card hover:bg-accent/40 pl-1 pr-1 sm:px-3 py-2 whitespace-nowrap text-[11px] sm:text-sm z-20 w-[80px] sm:w-[140px] border-r border-border">
-                                  <div>
-                                    <div className="font-medium text-foreground">
-                                      {getDisplayName(student)}
-                                    </div>
-                                    <div className="text-muted-foreground">{student.student_id}</div>
-                                  </div>
-                                </td>
-                                {eventsToShow.map((event) => {
-                                  const key = `${student.id}-${event.id}`;
-                                  const status = (attendanceMap.get(key) || 'absent').toLowerCase();
-                                  return (
-                                    <td key={event.id} className="px-1 py-2 whitespace-nowrap text-center align-middle">
-                                      {getStatusBadge(status)}
-                                    </td>
-                                  );
-                                })}
-                                <td className="px-1 sm:px-2 py-2 text-[10px] sm:text-sm text-center font-semibold whitespace-nowrap">{computeTotalPenalty(student.id)}</td>
-                              </tr>
-                            ))}
-                          </React.Fragment>
-                        );
-                      })
-                    )
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+        {renderAttendanceTable(viewMode === 'matrix' && !isStudentRole)}
       </div>
     </div>
   );

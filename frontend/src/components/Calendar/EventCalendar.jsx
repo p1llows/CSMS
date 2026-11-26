@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, subMonths, addMonths } from 'date-fns';
-import { Plus, Edit, Trash2, MapPin, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Clock, Calendar } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 
 import {
@@ -22,6 +22,16 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 
 import { useAuth } from '../../context/AuthContext.jsx';
 
+const parseLocalDate = (val) => {
+  if (!val) return new Date(NaN);
+  if (val instanceof Date) return val;
+  const match = String(val).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  return new Date(val);
+};
+
 const EventCalendar = () => {
   const { user } = useAuth();
   const [date, setDate] = useState(new Date());
@@ -32,6 +42,8 @@ const EventCalendar = () => {
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
+  const [allEventsStatus, setAllEventsStatus] = useState('all');
+  const [allEventsType, setAllEventsType] = useState('all');
 
   useEffect(() => {
     fetchEvents();
@@ -39,7 +51,7 @@ const EventCalendar = () => {
 
   useEffect(() => {
     const dayEvents = events.filter(event => 
-      isSameDay(new Date(event.event_date), date)
+      isSameDay(parseLocalDate(event.event_date), date)
     );
     setSelectedDateEvents(dayEvents);
   }, [date, events]);
@@ -77,7 +89,7 @@ const EventCalendar = () => {
 
     useEffect(() => {
       if (editingEvent) {
-        const eventDateStr = format(new Date(editingEvent.event_date), 'yyyy-MM-dd');
+        const eventDateStr = format(parseLocalDate(editingEvent.event_date), 'yyyy-MM-dd');
         const displayType = editingEvent.type === 'FRC' ? 'FRC' : 'Events';
         const base = {
           name: editingEvent.name,
@@ -295,7 +307,7 @@ const EventCalendar = () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const toDate = (d) => new Date(d);
+    const toDate = (d) => parseLocalDate(d);
 
     const upcoming = events
       .filter(e => toDate(e.event_date) >= todayStart)
@@ -325,13 +337,24 @@ const EventCalendar = () => {
     return 'md:grid-cols-1';
   }, [eventTypes]);
 
+  const cardClass =
+    'rounded-2xl border border-border/60 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.03)] dark:shadow-none';
+  const isAdmin = (user?.role || '').toString().toUpperCase() === 'ADMIN';
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-foreground">Event Calendar</h2>
-        {((user?.role || '').toString().toUpperCase() === 'ADMIN') && (
-          <Button onClick={() => setShowEventModal(true)} className="inline-flex items-center">
-            <Plus className="w-4 h-4 mr-2" />
+      <div className="flex flex-wrap justify-between items-end gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground mb-1">
+            Schedule &amp; Events
+          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Event Calendar
+          </h2>
+        </div>
+        {isAdmin && (
+          <Button onClick={() => { setEditingEvent(null); setShowEventModal(true); }} size="sm" className="rounded-full px-4 gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
             Add Event
           </Button>
         )}
@@ -339,33 +362,51 @@ const EventCalendar = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card>
-            <CardContent className="p-4">
-              {loading ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+          <Card className={`${cardClass} overflow-hidden`}>
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between gap-2 px-5 sm:px-6 py-4 border-b border-border/60">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                    {format(date, 'MMMM yyyy')}
+                  </h3>
+                  <div className="flex items-center gap-1.5">
                     <Button
-                      variant="ghost"
-                      onClick={() => setDate(prev => subMonths(prev, 1))}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full px-3 h-8 text-xs"
+                      onClick={() => setDate(new Date())}
                     >
-                      ‹ Prev
+                      Today
                     </Button>
-                    <h3 className="text-lg font-semibold text-gray-900">{format(date, 'MMMM yyyy')}</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setDate(prev => addMonths(prev, 1))}
-                    >
-                      Next ›
-                    </Button>
+                    <div className="inline-flex items-center rounded-full bg-muted p-0.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full h-7 px-2.5 text-xs"
+                        onClick={() => setDate(prev => subMonths(prev, 1))}
+                      >
+                        ‹ Prev
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full h-7 px-2.5 text-xs"
+                        onClick={() => setDate(prev => addMonths(prev, 1))}
+                      >
+                        Next ›
+                      </Button>
+                    </div>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-7 gap-2 text-xs font-medium text-gray-500">
-                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                      <div key={d} className="text-center">{d}</div>
+                <div>
+                  <div className="grid grid-cols-7 bg-muted/40 border-b border-border/60 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                      <div key={d} className="text-center py-2.5">{d}</div>
                     ))}
                   </div>
 
@@ -384,24 +425,44 @@ const EventCalendar = () => {
                         const inMonth = isSameMonth(dayDate, monthStart);
                         const isToday = isSameDay(dayDate, new Date());
                         const isSelected = isSameDay(dayDate, date);
-                        const dayEvents = events.filter(ev => isSameDay(new Date(ev.event_date), dayDate));
+                        const dayEvents = events.filter(ev => isSameDay(parseLocalDate(ev.event_date), dayDate));
                         days.push(
                           <div
                             key={dayDate.toISOString()}
                             onClick={() => setDate(dayDate)}
                             onDoubleClick={() => {
                               setDate(dayDate);
-                              if (((user?.role || '').toString().toUpperCase()) === 'ADMIN') {
+                              if (isAdmin) {
                                 setEditingEvent(null);
                                 setShowEventModal(true);
                               }
                             }}
-                            className={`border rounded-lg p-2 min-h-[100px] cursor-pointer transition-all duration-150 ${inMonth ? 'bg-white' : 'bg-gray-50'} ${isSelected ? 'ring-2 ring-primary-500' : ''} hover:shadow-md hover:bg-accent/40 hover:border-primary/40`}
+                            className={`relative p-2.5 min-h-[96px] cursor-pointer transition-colors ${
+                              inMonth ? 'bg-card' : 'bg-muted/25'
+                            } ${
+                              isSelected ? 'bg-primary/[0.04]' : 'hover:bg-muted/40'
+                            }`}
                           >
-                            <div className="flex items-center justify-between text-xs mb-2">
-                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-primary-600 text-white' : 'text-gray-700'}`}>{format(dayDate, 'd')}</span>
+                            {isSelected && (
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-1 rounded-xl ring-1 ring-primary/60"
+                              />
+                            )}
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span
+                                className={`inline-flex items-center justify-center w-6 h-6 rounded-full tabular-nums text-xs ${
+                                  isToday
+                                    ? 'bg-primary text-primary-foreground font-semibold'
+                                    : inMonth
+                                    ? 'text-foreground font-medium'
+                                    : 'text-muted-foreground/60'
+                                }`}
+                              >
+                                {format(dayDate, 'd')}
+                              </span>
                               {dayEvents.length > 0 && (
-                                <span className="text-[10px] text-primary-700 font-semibold">{dayEvents.length} event{dayEvents.length > 1 ? 's' : ''}</span>
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                               )}
                             </div>
                             <div className="space-y-1">
@@ -418,14 +479,14 @@ const EventCalendar = () => {
                                       setDate(dayDate);
                                     }
                                   }}
-                                  className="w-full text-left text-[11px] truncate px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                                  className="w-full text-left text-[11px] font-medium truncate px-2 py-0.5 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                                   title={ev.name}
                                 >
                                   {ev.name}
                                 </button>
                               ))}
                               {dayEvents.length > 3 && (
-                                <div className="text-[11px] text-gray-500">+{dayEvents.length - 3} more</div>
+                                <div className="text-[10px] text-muted-foreground pl-1">+{dayEvents.length - 3} more</div>
                               )}
                             </div>
                           </div>
@@ -433,211 +494,302 @@ const EventCalendar = () => {
                         day = addDays(day, 1);
                       }
                       rows.push(
-                        <div key={day.toISOString()} className="grid grid-cols-7 gap-2">
+                        <div key={day.toISOString()} className="grid grid-cols-7 divide-x divide-border/50">
                           {days}
                         </div>
                       );
                     }
-                    return <div className="space-y-2">{rows}</div>;
+                    return <div className="divide-y divide-border/50">{rows}</div>;
                   })()}
                 </div>
-              )}
-            </CardContent>
+              </div>
+            )}
           </Card>
         </div>
 
-        <Card>
-          <CardContent className="p-4">
-          <h3 className="text-lg font-semibold text-foreground mb-4">
-            Events on {format(date, 'MMM dd, yyyy')}
-          </h3>
-          <div className="space-y-3">
+        <Card className={cardClass}>
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-foreground">
+                Events on {format(date, 'MMM dd, yyyy')}
+              </h3>
+              {selectedDateEvents.length > 0 && (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {selectedDateEvents.length}
+                </span>
+              )}
+            </div>
             {selectedDateEvents.length > 0 ? (
-              selectedDateEvents.map((event) => (
-                <div key={event.id} className="p-3 bg-accent rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-foreground">{event.name}</h4>
-                      <p className="text-sm text-muted-foreground">{event.type}</p>
-                      {event.start_time && (
-                        <div className="flex items-center text-xs text-muted-foreground mt-1">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {event.start_time} - {event.end_time}
+              <div className="divide-y divide-border/70">
+                {selectedDateEvents.map((event) => (
+                  <div key={event.id} className="py-3.5 first:pt-0 last:pb-0">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-foreground truncate">{event.name}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                            {event.type}
+                          </span>
                         </div>
-                      )}
-                      {event.location && (
-                        <div className="flex items-center text-xs text-muted-foreground mt-1">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {event.location}
+                        <div className="mt-1.5 space-y-1">
+                          {event.start_time && (
+                            <div className="flex items-center text-xs text-muted-foreground tabular-nums">
+                              <Clock className="w-3 h-3 mr-1.5" />
+                              {event.start_time}{event.end_time ? ` – ${event.end_time}` : ''}
+                            </div>
+                          )}
+                          {event.location && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3 mr-1.5" />
+                              {event.location}
+                            </div>
+                          )}
+                          {Number(event.penalty_hours || 0) > 0 && (
+                            <div className="text-xs text-rose-600 dark:text-rose-400 font-medium tabular-nums">
+                              Penalty: {event.penalty_hours}h
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {user?.role !== 'STUDENT' && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => {
+                              setEditingEvent(event);
+                              setShowEventModal(true);
+                            }}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                            aria-label="Edit event"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => { setEventToDelete(event); setShowDelete(true); }}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            aria-label="Delete event"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       )}
                     </div>
-                    {user?.role !== 'STUDENT' && (
-                      <div className="flex space-x-1 ml-2">
-                        <button
-                          onClick={() => {
-                            setEditingEvent(event);
-                            setShowEventModal(true);
-                          }}
-                          className="p-1 text-muted-foreground hover:text-primary"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => { setEventToDelete(event); setShowDelete(true); }}
-                          className="p-1 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
-              <p className="text-muted-foreground text-center py-4">No events scheduled</p>
+              <div className="py-12 text-center space-y-3">
+                <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">No events scheduled</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select another date or schedule a new event.
+                  </p>
+                </div>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-4"
+                    onClick={() => { setEditingEvent(null); setShowEventModal(true); }}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Event
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-        <h3 className="text-lg font-semibold text-foreground mb-4">All Events</h3>
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-        ) : (
-          events && events.length > 0 ? (
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Upcoming</h4>
-                <div className={`grid grid-cols-1 gap-4 ${gridColsClass}`}>
-                  {eventTypes.map((t) => {
-                    const list = upcomingEvents.filter(e => {
-                      const key = (e.type || '').toUpperCase();
-                      return t.key === 'FRC' ? key === 'FRC' : key !== 'FRC';
-                    });
-                    return (
-                      <div key={`upcoming-${t.key}`} className="space-y-3">
-                        <div className="text-xs font-semibold text-muted-foreground">{t.label}</div>
-                        {list.length > 0 ? list.map((e) => (
-                          <div key={e.id} className="p-3 bg-card border border-border rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <div className="text-sm text-muted-foreground">{format(new Date(e.event_date), 'MMM dd, yyyy')}</div>
-                                <h4 className="font-medium text-foreground">{e.name}</h4>
-                                <p className="text-sm text-muted-foreground">{e.type}</p>
-                                {e.start_time && (
-                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                    <Clock className="w-3 h-3 mr-1" />
-                                    {e.start_time} {e.end_time ? `- ${e.end_time}` : ''}
-                                  </div>
-                                )}
-                                {e.location && (
-                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                    <MapPin className="w-3 h-3 mr-1" />
-                                    {e.location}
-                                  </div>
-                                )}
-                              </div>
-                              {user?.role !== 'STUDENT' && (
-                                <div className="flex space-x-1 ml-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingEvent(e);
-                                      setShowEventModal(true);
-                                    }}
-                                    className="p-1 text-muted-foreground hover:text-primary"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => { setEventToDelete(e); setShowDelete(true); }}
-                                    className="p-1 text-muted-foreground hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )) : (
-                          <p className="text-muted-foreground text-sm">No upcoming {t.label.toLowerCase()} events</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+      <Card className={cardClass}>
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold text-foreground">All Events</h3>
+              {events?.length > 0 && (
+                <span className="text-xs text-muted-foreground tabular-nums">({events.length})</span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center rounded-full bg-muted p-1">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'upcoming', label: 'Upcoming' },
+                  { id: 'past', label: 'Past' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setAllEventsStatus(tab.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      allEventsStatus === tab.id
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-
-              <div>
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Past</h4>
-                <div className={`grid grid-cols-1 gap-4 ${gridColsClass}`}>
-                  {eventTypes.map((t) => {
-                    const list = pastEvents.filter(e => {
-                      const key = (e.type || '').toUpperCase();
-                      return t.key === 'FRC' ? key === 'FRC' : key !== 'FRC';
-                    });
-                    return (
-                      <div key={`past-${t.key}`} className="space-y-3">
-                        <div className="text-xs font-semibold text-muted-foreground">{t.label}</div>
-                        {list.length > 0 ? list.map((e) => (
-                          <div key={e.id} className="p-3 bg-card border border-border rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <div className="text-sm text-muted-foreground">{format(new Date(e.event_date), 'MMM dd, yyyy')}</div>
-                                <h4 className="font-medium text-foreground">{e.name}</h4>
-                                <p className="text-sm text-muted-foreground">{e.type}</p>
-                                {e.start_time && (
-                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                    <Clock className="w-3 h-3 mr-1" />
-                                    {e.start_time} {e.end_time ? `- ${e.end_time}` : ''}
-                                  </div>
-                                )}
-                                {e.location && (
-                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                    <MapPin className="w-3 h-3 mr-1" />
-                                    {e.location}
-                                  </div>
-                                )}
-                              </div>
-                              {user?.role !== 'STUDENT' && (
-                                <div className="flex space-x-1 ml-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingEvent(e);
-                                      setShowEventModal(true);
-                                    }}
-                                    className="p-1 text-muted-foreground hover:text-primary"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => { setEventToDelete(e); setShowDelete(true); }}
-                                    className="p-1 text-muted-foreground hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )) : (
-                          <p className="text-muted-foreground text-sm">No past {t.label.toLowerCase()} events</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="inline-flex items-center rounded-full bg-muted p-1">
+                {[
+                  { id: 'all', label: 'All Types' },
+                  { id: 'FRC', label: 'FRC' },
+                  { id: 'EVENTS', label: 'Events' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setAllEventsType(tab.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      allEventsType === tab.id
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-4">No events found</p>
-          )
-        )}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (() => {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const filteredAllEvents = (events || [])
+              .filter((e) => {
+                const evDate = parseLocalDate(e.event_date);
+                if (allEventsStatus === 'upcoming' && evDate < todayStart) return false;
+                if (allEventsStatus === 'past' && evDate >= todayStart) return false;
+                const isFrc = (e.type || '').toUpperCase() === 'FRC';
+                if (allEventsType === 'FRC' && !isFrc) return false;
+                if (allEventsType === 'EVENTS' && isFrc) return false;
+                return true;
+              })
+              .sort((a, b) => parseLocalDate(b.event_date) - parseLocalDate(a.event_date));
+
+            if (filteredAllEvents.length === 0) {
+              return (
+                <div className="py-10 text-center space-y-2">
+                  <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                  <p className="text-sm font-medium text-foreground">No matching events</p>
+                  <p className="text-xs text-muted-foreground">
+                    Try switching filters or schedule a new event.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-border/70">
+                  <thead>
+                    <tr>
+                      <th className="py-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Event
+                      </th>
+                      <th className="py-2.5 px-4 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Date &amp; Time
+                      </th>
+                      <th className="py-2.5 px-4 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Location
+                      </th>
+                      <th className="py-2.5 px-4 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Status
+                      </th>
+                      {user?.role !== 'STUDENT' && (
+                        <th className="py-2.5 pl-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          Actions
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredAllEvents.map((e) => {
+                      const evDate = parseLocalDate(e.event_date);
+                      const isUpcoming = evDate >= todayStart;
+                      return (
+                        <tr
+                          key={e.id}
+                          onClick={() => setDate(evDate)}
+                          className="hover:bg-muted/35 transition-colors cursor-pointer"
+                        >
+                          <td className="py-3.5 pr-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">{e.name}</span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                                {e.type}
+                              </span>
+                              {Number(e.penalty_hours || 0) > 0 && (
+                                <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium tabular-nums">
+                                  {e.penalty_hours}h
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                            <div className="text-foreground">{format(evDate, 'MMM dd, yyyy')}</div>
+                            {e.start_time && (
+                              <div className="text-xs text-muted-foreground">
+                                {e.start_time}{e.end_time ? ` – ${e.end_time}` : ''}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-sm text-muted-foreground">
+                            {e.location || '—'}
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                                isUpcoming
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {isUpcoming ? 'Upcoming' : 'Past'}
+                            </span>
+                          </td>
+                          {user?.role !== 'STUDENT' && (
+                            <td
+                              className="py-3.5 pl-4 whitespace-nowrap text-right"
+                              onClick={(ev) => ev.stopPropagation()}
+                            >
+                              <div className="inline-flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingEvent(e);
+                                    setShowEventModal(true);
+                                  }}
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                                  aria-label="Edit event"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEventToDelete(e); setShowDelete(true); }}
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                  aria-label="Delete event"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Plus, Users, Clock, MapPin, Calendar, CheckCircle, X, Edit, Trash2 } from 'lucide-react';
+import { Plus, Users, Clock, MapPin, Calendar, CheckCircle, X, Edit, Trash2, ClipboardList } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 import {
@@ -494,27 +494,35 @@ const TaskManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-foreground">Task Management</h2>
+      <div className="flex flex-wrap justify-between items-end gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground mb-1">
+            Service Opportunities
+          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Task Management
+          </h2>
+        </div>
         {user && role !== 'STUDENT' && (
-          <Button onClick={() => setShowTaskModal(true)} className="inline-flex items-center">
-            <Plus className="w-4 h-4 mr-2" />
+          <Button onClick={() => setShowTaskModal(true)} size="sm" className="rounded-full px-4 gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
             Create Task
           </Button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+      <div>
+        <nav className="inline-flex items-center rounded-full bg-muted p-1">
           {role === 'STUDENT' ? (
             <>
               <button
+                type="button"
                 onClick={() => setActiveTab('available')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`px-3.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                   activeTab === 'available'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Available Tasks
@@ -533,19 +541,20 @@ const TaskManagement = () => {
                 const titleAttr = unseenCount > 0 ? `Updates: ${titles}` : undefined;
                 return (
                   <button
+                    type="button"
                     key="applications-tab"
                     title={titleAttr}
                     onClick={() => setActiveTab('applications')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`px-3.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                       activeTab === 'applications'
-                        ? 'border-primary-500 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5">
                       My Applications
                       {unseenCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary/15 text-primary text-[10px] font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
                           {unseenCount}
                         </span>
                       )}
@@ -567,19 +576,20 @@ const TaskManagement = () => {
                 const titleAttr = unseenCount > 0 ? `Approved: ${titles}` : undefined;
                 return (
                   <button
+                    type="button"
                     key="mytasks-tab"
                     title={titleAttr}
                     onClick={() => setActiveTab('mytasks')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`px-3.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                       activeTab === 'mytasks'
-                        ? 'border-primary-500 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5">
                       My Tasks
                       {unseenCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary/15 text-primary text-[10px] font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
                           {unseenCount}
                         </span>
                       )}
@@ -591,21 +601,23 @@ const TaskManagement = () => {
           ) : (
             <>
               <button
+                type="button"
                 onClick={() => setActiveTab('all')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`px-3.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                   activeTab === 'all'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 All Tasks
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('available')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`px-3.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                   activeTab === 'available'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Available Tasks
@@ -616,19 +628,20 @@ const TaskManagement = () => {
                 const titleAttr = pendingCount > 0 ? `Pending: ${titles}` : undefined;
                 return (
                   <button
+                    type="button"
                     key="applications-admin-tab"
                     title={titleAttr}
                     onClick={() => setActiveTab('applications')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`px-3.5 py-1.5 rounded-full font-medium text-xs transition-colors ${
                       activeTab === 'applications'
-                        ? 'border-primary-500 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5">
                       Applications
                       {pendingCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary/15 text-primary text-[10px] font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
                           {pendingCount}
                         </span>
                       )}
@@ -651,7 +664,7 @@ const TaskManagement = () => {
           {activeTab === 'applications' && role === 'STUDENT' ? (
             <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="min-w-0 flex flex-col">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Pending</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Pending</h4>
                 <div className="space-y-2">
                    {myApplications.filter(a => a.status === 'pending').length === 0 && (
                     <Card>
@@ -664,16 +677,16 @@ const TaskManagement = () => {
                     <Card key={application.id}>
                       <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4 flex flex-col gap-2 h-auto sm:min-h-[110px]">
                         <div className="flex justify-between items-start mb-1">
-                          <div className="text-sm sm:text-base font-medium text-gray-900">{application.title}</div>
+                          <div className="text-sm sm:text-base font-medium text-foreground">{application.title}</div>
                           <div className="flex items-center gap-1">
                             <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Pending</span>
                             <button onClick={(e) => { e.stopPropagation(); setApplicationToWithdraw(application); setShowWithdrawConfirm(true); }} className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200">Cancel</button>
                           </div>
                         </div>
                         {application.description && (
-                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">{application.description}</p>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{application.description}</p>
                         )}
-                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                           <span className="inline-flex items-center"><Clock className="w-3 h-3 mr-1" />{application.hours_offered}h</span>
                           {application.task_date && (<span className="inline-flex items-center"><Calendar className="w-3 h-3 mr-1" />{new Date(application.task_date).toLocaleDateString()}</span>)}
                           {application.location && (<span className="inline-flex items-center"><MapPin className="w-3 h-3 mr-1" />{application.location}</span>)}
@@ -684,7 +697,7 @@ const TaskManagement = () => {
                 </div>
               </div>
               <div className="min-w-0 flex flex-col">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Rejected</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Rejected</h4>
                 <div className="space-y-2">
                   {myApplications.filter(a => a.status === 'rejected').length === 0 && (
                     <Card>
@@ -697,13 +710,13 @@ const TaskManagement = () => {
                     <Card key={application.id}>
                       <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4 flex flex-col gap-2 h-auto sm:min-h-[110px]">
                         <div className="flex justify-between items-start mb-1">
-                          <div className="text-sm sm:text-base font-medium text-gray-900">{application.title}</div>
+                          <div className="text-sm sm:text-base font-medium text-foreground">{application.title}</div>
                           <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">Rejected</span>
                         </div>
                         {application.description && (
-                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">{application.description}</p>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{application.description}</p>
                         )}
-                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                           <span className="inline-flex items-center"><Clock className="w-3 h-3 mr-1" />{application.hours_offered}h</span>
                           {application.task_date && (<span className="inline-flex items-center"><Calendar className="w-3 h-3 mr-1" />{new Date(application.task_date).toLocaleDateString()}</span>)}
                           {application.location && (<span className="inline-flex items-center"><MapPin className="w-3 h-3 mr-1" />{application.location}</span>)}
@@ -717,7 +730,7 @@ const TaskManagement = () => {
           ) : activeTab === 'mytasks' && role === 'STUDENT' ? (
             <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="min-w-0 flex flex-col">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Approved</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Approved</h4>
                 <div className="space-y-2">
                   {myApplications.filter(a => a.status === 'approved').length === 0 && (
                     <Card>
@@ -730,13 +743,13 @@ const TaskManagement = () => {
                     <Card key={application.id}>
                       <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4 flex flex-col space-y-2 h-auto sm:min-h-[110px]">
                       <div className="flex justify-between items-start mb-1">
-                        <div className="text-sm sm:text-base font-medium text-gray-900">{application.title}</div>
+                        <div className="text-sm sm:text-base font-medium text-foreground">{application.title}</div>
                         <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">Approved</span>
                       </div>
                       {application.description && (
-                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{application.description}</p>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{application.description}</p>
                       )}
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                         <span className="inline-flex items-center"><Clock className="w-3 h-3 mr-1" />{application.hours_offered}h</span>
                         {application.task_date && (<span className="inline-flex items-center"><Calendar className="w-3 h-3 mr-1" />{new Date(application.task_date).toLocaleDateString()}</span>)}
                         {application.location && (<span className="inline-flex items-center"><MapPin className="w-3 h-3 mr-1" />{application.location}</span>)}
@@ -747,7 +760,7 @@ const TaskManagement = () => {
                 </div>
               </div>
               <div className="min-w-0 flex flex-col">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Completed</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Completed</h4>
                 <div className="space-y-2">
                   {myApplications.filter(a => a.status === 'completed').length === 0 && (
                     <Card>
@@ -760,13 +773,13 @@ const TaskManagement = () => {
                     <Card key={application.id}>
                       <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4 flex flex-col space-y-2 h-auto sm:min-h-[110px]">
                       <div className="flex justify-between items-start mb-1">
-                        <div className="text-sm sm:text-base font-medium text-gray-900">{application.title}</div>
+                        <div className="text-sm sm:text-base font-medium text-foreground">{application.title}</div>
                         <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Completed</span>
                       </div>
                       {application.description && (
-                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{application.description}</p>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{application.description}</p>
                       )}
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                         {(() => { const hrs = getRenderedHours(application); return hrs !== null ? (
                           <span className="inline-flex items-center"><Clock className="w-3 h-3 mr-1" />{`${hrs}h`}</span>
                         ) : null; })()}
@@ -784,7 +797,7 @@ const TaskManagement = () => {
               {/* Mobile: single column stacked sections */}
               <div className="block sm:hidden space-y-3">
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Pending</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Pending</h4>
                   <div className="space-y-1">
                     {adminApplications.filter(a => a.status === 'pending').length === 0 && (
                       <Card>
@@ -797,7 +810,7 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Approved</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Approved</h4>
                   <div className="space-y-1">
                     {adminApplications.filter(a => a.status === 'approved').length === 0 && (
                       <Card>
@@ -810,7 +823,7 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Completed</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Completed</h4>
                   <div className="space-y-1">
                     {adminApplications.filter(a => a.status === 'completed').length === 0 && (
                       <Card>
@@ -823,7 +836,7 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Rejected</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Rejected</h4>
                   <div className="space-y-1">
                     {adminApplications.filter(a => a.status === 'rejected').length === 0 && (
                       <Card>
@@ -840,7 +853,7 @@ const TaskManagement = () => {
               {/* Desktop/tablet: multi-column grid */}
               <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-2 lg:gap-4 mt-2">
                 <div className="min-w-0 flex flex-col h-auto lg:h-[520px]">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Pending</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Pending</h4>
                   <div className="space-y-1 sm:space-y-2 lg:flex-1 lg:overflow-y-auto">
                     {adminApplications.filter(a => a.status === 'pending').length === 0 && (
                       <Card>
@@ -853,7 +866,7 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 <div className="min-w-0 flex flex-col h-auto lg:h-[520px]">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Approved</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Approved</h4>
                   <div className="space-y-1 sm:space-y-2 lg:flex-1 lg:overflow-y-auto">
                     {adminApplications.filter(a => a.status === 'approved').length === 0 && (
                       <Card>
@@ -866,7 +879,7 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 <div className="min-w-0 flex flex-col h-auto lg:h-[520px]">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Completed</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Completed</h4>
                   <div className="space-y-1 sm:space-y-2 lg:flex-1 lg:overflow-y-auto">
                     {adminApplications.filter(a => a.status === 'completed').length === 0 && (
                       <Card>
@@ -879,7 +892,7 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 <div className="min-w-0 flex flex-col h-auto lg:h-[520px]">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Rejected</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">Rejected</h4>
                   <div className="space-y-1 sm:space-y-2 lg:flex-1 lg:overflow-y-auto">
                     {adminApplications.filter(a => a.status === 'rejected').length === 0 && (
                       <Card>
@@ -893,12 +906,38 @@ const TaskManagement = () => {
                 </div>
               </div>
             </div>
+          ) : tasks.length === 0 ? (
+            <Card className="col-span-full rounded-2xl border border-border/60 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.03)] dark:shadow-none">
+              <CardContent className="py-14 px-6 text-center space-y-3">
+                <ClipboardList className="w-9 h-9 text-muted-foreground/40 mx-auto" />
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {activeTab === 'available' ? 'No available tasks' : 'No tasks created yet'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                    {role === 'STUDENT'
+                      ? 'Check back later for new community service opportunities.'
+                      : 'Create a community service task so students can view hours and apply.'}
+                  </p>
+                </div>
+                {user && role !== 'STUDENT' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-4 mt-1"
+                    onClick={() => setShowTaskModal(true)}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Create Task
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           ) : (
             tasks.map((task) => (
-              <Card key={task.id}>
-                <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-sm sm:text-base font-semibold text-gray-900">{task.title}</h3>
+              <Card key={task.id} className="rounded-2xl border border-border/60 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.03)] dark:shadow-none">
+                <CardContent className="p-5">
+                <div className="flex justify-between items-start mb-3 gap-2">
+                  <h3 className="text-base font-semibold text-foreground">{task.title}</h3>
                   <div className="flex items-center gap-2">
                     {(role === 'ADMIN' || role === 'FACULTY') && (
                       <div className="flex items-center gap-1">
@@ -922,12 +961,12 @@ const TaskManagement = () => {
                       const isClosedByApproval = (task.max_participants != null) && (Number(task.approved_count) >= Number(task.max_participants));
                       const displayStatus = isClosedByApproval ? 'closed' : task.status;
                       const badgeClass = displayStatus === 'open'
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                         : displayStatus === 'in_progress'
-                          ? 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                           : displayStatus === 'closed'
-                            ? 'bg-gray-200 text-gray-700'
-                            : 'bg-gray-100 text-gray-800';
+                            ? 'bg-muted text-muted-foreground'
+                            : 'bg-muted text-muted-foreground';
                       return (
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${badgeClass}`}>
                           {displayStatus}
@@ -937,9 +976,9 @@ const TaskManagement = () => {
                   </div>
                 </div>
                 
-                <p className="text-gray-600 text-sm mb-3">{task.description}</p>
+                <p className="text-muted-foreground text-sm mb-3">{task.description}</p>
                 
-                <div className="space-y-2 text-sm text-gray-500 mb-4">
+                <div className="space-y-2 text-sm text-muted-foreground mb-4">
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 mr-2" />
                     {task.hours_offered} hours
@@ -967,7 +1006,7 @@ const TaskManagement = () => {
                 {(() => {
                   const isClosedByApproval = (task.max_participants != null) && (Number(task.approved_count) >= Number(task.max_participants));
                   return role === 'STUDENT' && task.status === 'open' && !isClosedByApproval && (task.max_participants == null || task.current_participants < task.max_participants) && (
-                  <Button className="w-full" onClick={() => applyForTask(task.id)} disabled={!!applyingIds[task.id]}>
+                  <Button className="w-full rounded-full" onClick={() => applyForTask(task.id)} disabled={!!applyingIds[task.id]}>
                     {applyingIds[task.id] ? 'Applying...' : 'Apply for Task'}
                   </Button>
                   );
@@ -1027,8 +1066,8 @@ const AdminApplicationCard = ({ app, onUpdate }) => {
       <CardContent className="p-4 sm:p-5 pt-4 sm:pt-5 flex flex-col gap-3 h-auto sm:min-h-[180px]">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2">{app.title}</h3>
-            <p className="text-sm text-gray-600 line-clamp-1">{app.first_name} {app.last_name} ({app.student_id || 'N/A'})</p>
+            <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-2">{app.title}</h3>
+            <p className="text-sm text-muted-foreground line-clamp-1">{app.first_name} {app.last_name} ({app.student_id || 'N/A'})</p>
           </div>
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
             status === 'approved' ? 'bg-green-100 text-green-800' :
@@ -1040,8 +1079,8 @@ const AdminApplicationCard = ({ app, onUpdate }) => {
           </span>
         </div>
 
-        <div className="text-sm text-gray-600">
-          <div>Hours Offered: <span className="font-medium text-gray-800">{offered}</span></div>
+        <div className="text-sm text-muted-foreground">
+          <div>Hours Offered: <span className="font-medium text-foreground">{offered}</span></div>
         </div>
 
         <div className="flex justify-end gap-2 mt-auto">
