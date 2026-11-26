@@ -10,9 +10,32 @@ const { calculateStudentStats } = require('../utils/studentStats');
 const router = express.Router();
 const upload = multer({ dest: 'uploads/csv/' });
 
+let sessionColumnsEnsured = false;
+const ensureSessionColumns = async () => {
+  if (sessionColumnsEnsured) return;
+  await db.query(`
+    ALTER TABLE attendance
+      ADD COLUMN IF NOT EXISTS am_in BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS am_out BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS pm_in BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS pm_out BOOLEAN DEFAULT false
+  `);
+  await db.query(`
+    UPDATE attendance
+    SET am_in = true, am_out = true, pm_in = true, pm_out = true
+    WHERE LOWER(status) = 'present'
+      AND COALESCE(am_in, false) = false
+      AND COALESCE(am_out, false) = false
+      AND COALESCE(pm_in, false) = false
+      AND COALESCE(pm_out, false) = false
+  `);
+  sessionColumnsEnsured = true;
+};
+
 // Get attendance records
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    await ensureSessionColumns();
     const { page, limit } = paginationSchema.parse(req.query);
     const { eventId, studentId, status, all } = req.query;
 
@@ -43,15 +66,22 @@ router.get('/', authenticateToken, async (req, res) => {
     if (all === 'true' && eventId) {
       const [studentsRes, recordsRes] = await Promise.all([
         db.query(`SELECT id FROM users WHERE LOWER(role) = 'student' ORDER BY last_name ASC, first_name ASC`),
-        db.query(`SELECT user_id, event_id, status FROM attendance WHERE event_id = $1`, [Number(eventId)])
+        db.query(`SELECT user_id, event_id, status, am_in, am_out, pm_in, pm_out FROM attendance WHERE event_id = $1`, [Number(eventId)])
       ]);
 
-      const recMap = new Map(recordsRes.rows.map(r => [r.user_id, (r.status || '').toString().toLowerCase()]));
-      const merged = studentsRes.rows.map(s => ({
-        user_id: s.id,
-        event_id: Number(eventId),
-        status: recMap.get(s.id) || 'absent'
-      }));
+      const recMap = new Map(recordsRes.rows.map(r => [r.user_id, r]));
+      const merged = studentsRes.rows.map(s => {
+        const rec = recMap.get(s.id);
+        return {
+          user_id: s.id,
+          event_id: Number(eventId),
+          status: rec ? (rec.status || '').toString().toLowerCase() : 'absent',
+          am_in: Boolean(rec?.am_in),
+          am_out: Boolean(rec?.am_out),
+          pm_in: Boolean(rec?.pm_in),
+          pm_out: Boolean(rec?.pm_out),
+        };
+      });
 
       return res.json(merged);
     }
@@ -60,7 +90,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const offset = (page - 1) * limit;
 
     const sql = `
-      SELECT user_id, event_id, status 
+      SELECT user_id, event_id, status, am_in, am_out, pm_in, pm_out
       FROM attendance 
       ${whereClause} 
       ORDER BY recorded_at DESC 
@@ -72,7 +102,11 @@ router.get('/', authenticateToken, async (req, res) => {
     const simplified = result.rows.map(r => ({
       user_id: r.user_id,
       event_id: r.event_id,
-      status: (r.status || '').toString().toLowerCase()
+      status: (r.status || '').toString().toLowerCase(),
+      am_in: Boolean(r.am_in),
+      am_out: Boolean(r.am_out),
+      pm_in: Boolean(r.pm_in),
+      pm_out: Boolean(r.pm_out),
     }));
 
     res.json(simplified);
@@ -95,9 +129,8 @@ router.post('/test', authenticateToken, async (req, res) => {
 // Create/update attendance record
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { eventId, studentId, userId, status } = req.body || {};
-    const normalizedStatus = (status || '').toString().toLowerCase() === 'present' ? 'present' : 'absent';
-
+    await ensureSessionColumns();
+    const { eventId, studentId, userId, status, am_in, am_out, pm_in, pm_out } = req.body || {};
     const event_id = Number(eventId);
     const user_id = Number(studentId || userId);
 
@@ -105,21 +138,64 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Missing eventId or userId' });
     }
 
+    const evRes = await db.query('SELECT type FROM events WHERE id = $1', [event_id]);
+    const evType = (evRes.rows[0]?.type || '').toString().toUpperCase();
+    const hasSessionPayload = [am_in, am_out, pm_in, pm_out].some(v => typeof v === 'boolean');
+
+    let finalAmIn = false;
+    let finalAmOut = false;
+    let finalPmIn = false;
+    let finalPmOut = false;
+    let normalizedStatus = (status || '').toString().toLowerCase() === 'present' ? 'present' : 'absent';
+
+    if (evType !== 'FRC' && hasSessionPayload) {
+      finalAmIn = Boolean(am_in);
+      finalAmOut = Boolean(am_out);
+      finalPmIn = Boolean(pm_in);
+      finalPmOut = Boolean(pm_out);
+      normalizedStatus = (finalAmIn && finalAmOut && finalPmIn && finalPmOut) ? 'present' : 'absent';
+    } else if (evType !== 'FRC') {
+      finalAmIn = normalizedStatus === 'present';
+      finalAmOut = normalizedStatus === 'present';
+      finalPmIn = normalizedStatus === 'present';
+      finalPmOut = normalizedStatus === 'present';
+    }
+
     const upsertSql = `
-      INSERT INTO attendance (user_id, event_id, status, recorded_by)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO attendance (user_id, event_id, status, am_in, am_out, pm_in, pm_out, recorded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (user_id, event_id)
-      DO UPDATE SET status = EXCLUDED.status, recorded_by = EXCLUDED.recorded_by, recorded_at = CURRENT_TIMESTAMP
-      RETURNING user_id, event_id, status
+      DO UPDATE SET
+        status = EXCLUDED.status,
+        am_in = EXCLUDED.am_in,
+        am_out = EXCLUDED.am_out,
+        pm_in = EXCLUDED.pm_in,
+        pm_out = EXCLUDED.pm_out,
+        recorded_by = EXCLUDED.recorded_by,
+        recorded_at = CURRENT_TIMESTAMP
+      RETURNING user_id, event_id, status, am_in, am_out, pm_in, pm_out
     `;
 
-    const result = await db.query(upsertSql, [user_id, event_id, normalizedStatus, req.user?.id || null]);
+    const result = await db.query(upsertSql, [
+      user_id,
+      event_id,
+      normalizedStatus,
+      finalAmIn,
+      finalAmOut,
+      finalPmIn,
+      finalPmOut,
+      req.user?.id || null
+    ]);
     const record = result.rows[0];
 
     res.json({
       user_id: record.user_id,
       event_id: record.event_id,
-      status: (record.status || '').toString().toLowerCase()
+      status: (record.status || '').toString().toLowerCase(),
+      am_in: Boolean(record.am_in),
+      am_out: Boolean(record.am_out),
+      pm_in: Boolean(record.pm_in),
+      pm_out: Boolean(record.pm_out),
     });
   } catch (error) {
     console.error('Create attendance error:', error);
